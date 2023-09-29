@@ -2,8 +2,7 @@ package biogenesis;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.Collections;
 
 /**
  * Stores a 2D array of buckets, and stores Organisms in one or more buckets that the organism touches.
@@ -34,10 +33,10 @@ public class OrganismBuckets {
 
     this.maxWidth = (mapWidth + bucketSize - 1) / bucketSize;
     this.maxHeight = (mapHeight + bucketSize - 1) / bucketSize;
-    this.buckets = new Collection[maxHeight+1][maxWidth+1];
+    this.buckets = new Collection[maxHeight + 1][maxWidth + 1];
     for (int y = 0; y <= maxHeight; y++) {
       for (int x = 0; x <= maxWidth; x++) {
-        buckets[y][x] = new ArrayList<>();
+        buckets[y][x] = Collections.synchronizedList(new ArrayList<>());
       }
     }
   }
@@ -65,30 +64,74 @@ public class OrganismBuckets {
   }
 
   /**
-   * Returns the organisms that are potentially overlapping the given organism `o`.
-   * This is the union of organisms in all the buckets that `o` touches (there can be one
-   * or more of such buckets that `o` touches).
-   * @param o
-   * @return
+   * Matcher that is used in {@link #findFirst(Organism, OrganismMatcher)}.
    */
-  public Collection<Organism> query(Organism o) {
-	final int minx = Math.max(0, (int) (o.getMinX() / (double) bucketSize));
-	final int miny = Math.max(0, (int) (o.getMinY() / (double) bucketSize));
+  public interface OrganismMatcher {
+    /**
+     * Returns true if the given organism matches the criteria. Usually used for
+     * collision detection.
+     * @param o The organism to test.
+     * @return True if the organism matches the criteria.
+     */
+    boolean match(Organism o);
+  }
+
+  /**
+   * Iterates through all organisms that potentially overlap the given organism `o`.
+   * The iteration stops when the given <pre>matcher</pre> returns true and the
+   * matching organism is returned.
+   * @param o The organism to determine which buckets to search. Only using the bounding
+   *          box of the organism.
+   * @return The first organism that matches the given matcher, or null if no match.
+   */
+  public Organism findFirst(Organism o, OrganismMatcher matcher) {
+    final int minx = Math.max(0, (int) (o.getMinX() / (double) bucketSize));
+    final int miny = Math.max(0, (int) (o.getMinY() / (double) bucketSize));
     final int maxx = Math.min(maxWidth, (int) (o.getMaxX() / (double) bucketSize));
     final int maxy = Math.min(maxHeight, (int) (o.getMaxY() / (double) bucketSize));
 
     if (minx == maxx && miny == maxy) {
-      return buckets[miny][minx];
+      synchronized (buckets[miny][minx]) {
+        for (Organism match : buckets[miny][minx]) {
+          if (matcher.match(match)) {
+            return match;
+          }
+        }
+      }
+      return null;
     }
-
-    Set<Organism> result = new HashSet<>();
 
     for (int y = miny; y <= maxy; y++) {
       for (int x = minx; x <= maxx; x++) {
-        result.addAll(buckets[y][x]);
+        synchronized (buckets[y][x]) {
+          for (Organism match : buckets[y][x]) {
+            if (matcher.match(match)) {
+              return match;
+            }
+          }
+        }
       }
     }
 
-    return result;
+    return null;
+  }
+
+  public Collection<Organism> getBucket(int x, int y) {
+    // if (x < 0 || x > maxWidth || y < 0 || y > maxHeight) {
+    //   return new ArrayList<>();
+    // }
+    return buckets[y][x];
+  }
+
+  public int getMaxWidth() {
+    return maxWidth;
+  }
+
+  public int getMaxHeight() {
+    return maxHeight;
+  }
+
+  public int getBucketSize() {
+    return bucketSize;
   }
 }

@@ -19,17 +19,26 @@
  */
 package biogenesis;
 
+import java.awt.Dimension;
+import java.awt.Graphics;
+import java.awt.Rectangle;
+import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.Semaphore;
+import java.util.stream.Collectors;
+
+import javax.swing.JViewport;
 import javax.swing.SwingUtilities;
 
 import com.google.gson.annotations.Expose;
-
-import java.util.Collections;
-import java.io.*;
-import java.awt.*;
 /**
  * This class contains all the information needed to run a world:
  * the organisms, the substances and the biological corridors. It
@@ -46,10 +55,12 @@ public class World implements Serializable{
 	/**
 	 * World width
 	 */
+	@Expose
 	protected int _width;
 	/**
 	 * World height
 	 */
+	@Expose
 	protected int _height;
 	/**
 	 * A list of the organisms in the world, even dead ones.
@@ -57,7 +68,7 @@ public class World implements Serializable{
 	 * manually synchronize when iterating over it.
 	 */
 	@Expose
-	protected List<Organism> _organisms;
+	protected Collection<Organism> _organisms;
 	/**
 	 * A list of all input biological corridors from where organisms
 	 * of other hosts will arrive.
@@ -75,17 +86,20 @@ public class World implements Serializable{
 	/**
 	 * Number of living organisms in the world
 	 */
-	protected int _population = 0;
+	protected volatile int _population = 0;
+	private static final Object _population_monitor = new Object();
 	/**
 	 * The next identification number that will be assigned to an organism
 	 * in this world
 	 */
 	protected int NEXT_ID;
+	private static final Object NEXT_ID_monitor = new Object();
 	/**
 	 * The next identification part of the string that will be assigned to an organisms clade
 	 * in this world
 	 */
 	protected int NEXT_CLADE_PART;
+	private static final Object NEXT_CLADE_PART_monitor = new Object();
 	/**
 	 * A reference to the visible world part of this world used basically
 	 * to indicate which parts of the world should be repainted due to
@@ -100,15 +114,27 @@ public class World implements Serializable{
 	/**
 	 * The amount of O2 in the atmosphere of this world.
 	 */
-	protected double _O2;
+	@Expose
+	protected volatile double _O2;
+	private static final Object _O2_monitor = new Object();
 	/**
 	 * The amount of CO2 in the atmosphere of this world.
 	 */
-	protected double _CO2;
+	@Expose
+	protected volatile double _CO2;
+	private static final Object _CO2_monitor = new Object();
 	/**
 	 * The amount of CH4 in the atmosphere of this world.
 	 */
-	protected double _CH4;
+	@Expose
+	protected volatile double _CH4;
+	private static final Object _CH4_monitor = new Object();
+	/**
+	 * The amount of detritus in the atmosphere of this world.
+	 */
+	@Expose
+	protected volatile double _detritus;
+	private static final Object _detritus_monitor = new Object();
 	/**
 	 * Do we need to check for corridors?
 	 */
@@ -134,14 +160,6 @@ public class World implements Serializable{
 		in.defaultReadObject();
 		inCorridors = Collections.synchronizedList(new ArrayList<InCorridor>());
 		outCorridors = Collections.synchronizedList(new ArrayList<OutCorridor>());
-	}
-	/**
-	 * Returns a new StatisticsWindow refering to this world.
-	 *
-	 * @return  A newly created StatisticsWindow.
-	 */
-	public StatisticsWindow createStatisticsWindow() {
-		return new StatisticsWindow(_visibleWorld.getMainWindow(), worldStatistics, _organisms);
 	}
 	/**
 	 * Finds an organism that has the given coordinates inside its bounding box and
@@ -191,7 +209,9 @@ public class World implements Serializable{
 	 * @return  A unique number used to identify an organism.
 	 */
 	public int getNewId() {
-		return NEXT_ID++;
+		synchronized (NEXT_ID_monitor) {
+			return NEXT_ID++;
+		}
 	}
 	/**
 	 * Returns the next available clade part identification number.
@@ -199,7 +219,9 @@ public class World implements Serializable{
 	 * @return  A unique number used to identify part of the clade string
 	 */
 	public int getNewCladePart() {
-		return NEXT_CLADE_PART++;
+		synchronized (NEXT_CLADE_PART_monitor) {
+			return NEXT_CLADE_PART++;
+		}
 	}
 	/**
 	 * Returns the actual time.
@@ -238,13 +260,24 @@ public class World implements Serializable{
 	 * Returns the number of distinct cladeIDs in the current population.
 	 */
 	public int getDistinctCladeIDCount() {
-        return (int) _organisms
-            .stream()
-            .filter(o -> o.isAlive())
-            .map(o -> o.getGeneticCode().getcladeID())
-            .distinct()
-            .count();
-    }
+		return getDistinctCladeIDCount(1);
+	}
+	/**
+	 * Returns the number of distinct cladeIDs in the current population.
+	 * @param minPopulation only count clades with at least minPopulation organisms
+	 */
+	public int getDistinctCladeIDCount(int minPopulation) {
+		synchronized (_organisms) {
+		return (int) _organisms
+				.stream()
+				.filter(o -> o.isAlive())
+				.collect(Collectors.groupingBy(o -> o.getGeneticCode().getcladeID(), Collectors.counting()))
+				.entrySet()
+				.stream()
+				.filter(e -> e.getValue() >= minPopulation) // only show clades with at least minPopulation organisms
+				.count();
+		}
+	}
 	/**
 	 * Increase the population counter by one.
 	 *
@@ -253,8 +286,10 @@ public class World implements Serializable{
 	 * cases it may be used directly.
 	 */
 	public void increasePopulation() {
-		_population++;
-		worldStatistics.eventPopulationIncrease(_population);
+		synchronized (_population_monitor) {
+			_population++;
+			worldStatistics.eventPopulationIncrease(_population);
+		}
 	}
 	/**
 	 * Decrease the population counter by one.
@@ -264,8 +299,10 @@ public class World implements Serializable{
 	 * but in some cases it may be used directly.
 	 */
 	public void decreasePopulation() {
-		_population--;
-		worldStatistics.eventPopulationDecrease(_population);
+		synchronized (_population_monitor) {
+			_population--;
+			worldStatistics.eventPopulationDecrease(_population);
+		}
 	}
 	/**
 	 * Returns the amount of O2 that exist in the atmosphere.
@@ -292,12 +329,12 @@ public class World implements Serializable{
 		return _CH4;
 	}
 	/**
-	 * Add O2 to the atmosphere.
+	 * Returns the amount of detritus that exist in the atmosphere.
 	 *
-	 * @param q  The amount of O2 to add.
+	 * @return  The amount of detritus.
 	 */
-	public void addO2(double q) {
-		_O2 += q;
+	public double getDetritus() {
+		return _detritus;
 	}
 	/**
 	 * Add CO2 to the atmosphere.
@@ -305,7 +342,9 @@ public class World implements Serializable{
 	 * @param q  The amount of CO2 to add.
 	 */
 	public void addCO2(double q) {
-		_CO2 += q;
+		synchronized (_CO2_monitor) {
+			_CO2 += q;
+		}
 	}
 	/**
 	 * Add CH4 to the atmosphere.
@@ -313,15 +352,19 @@ public class World implements Serializable{
 	 * @param q  The amount of CH4 to add.
 	 */
 	public void addCH4(double q) {
-		_CH4 += q;
+		synchronized (_CH4_monitor) {
+			_CH4 += q;
+		}
 	}
 	/**
-	 * Substracts O2 from the atmosphere.
+	 * Add detritus to the atmosphere.
 	 *
-	 * @param q  The amount of O2 to substract.
+	 * @param q  The amount of detritus to add.
 	 */
-	public void decreaseO2(double q) {
-		_O2 -= Math.min(q, _O2);
+	public void addDetritus(double q) {
+		synchronized (_detritus_monitor) {
+			_detritus += q;
+		}
 	}
 	/**
 	 * Substract CO2 from the atmosphere.
@@ -329,7 +372,9 @@ public class World implements Serializable{
 	 * @param q  The amount of CO2 to substract.
 	 */
 	public void decreaseCO2(double q) {
-		_CO2 -= Math.min(q, _CO2);
+		synchronized (_CO2_monitor) {
+			_CO2 -= Math.min(q, _CO2);
+		}
 	}
 	/**
 	 * Substract CH4 from the atmosphere.
@@ -337,7 +382,38 @@ public class World implements Serializable{
 	 * @param q  The amount of CH4 to substract.
 	 */
 	public void decreaseCH4(double q) {
-		_CH4 -= Math.min(q, _CH4);
+		synchronized (_CH4_monitor) {
+			_CH4 -= Math.min(q, _CH4);
+		}
+	}
+	/**
+	 * Substract detritus from the atmosphere.
+	 *
+	 * @param q  The amount of detritus to substract.
+	 */
+	public void decreaseDetritus(double q) {
+		synchronized (_detritus_monitor) {
+			_detritus -= Math.min(q, _detritus);
+		}
+	}
+	/**
+	 * Takes the given amount of CO2 from the atmosphere and converts it to O2.
+	 * If the atmosphere doesn't have enough CO2, only the available amount is
+	 * converted.
+	 *
+	 * @param q  The amount of CO2 to convert.
+	 * @return  The amount of CO2 converted. This is always <code>q</code>
+	 * unless there weren't enough CO2 in the atmosphere.
+	 */
+	public double convertCO2ToO2(double q) {
+		synchronized (_CO2_monitor) {
+			synchronized (_O2_monitor) {
+				double d = Math.min(q,_CO2);
+				_CO2 -= d;
+				_O2 += d;
+				return d;
+			}
+		}
 	}
 	/**
 	 * Consume O2 from the atmosphere to realize the respiration process
@@ -346,13 +422,15 @@ public class World implements Serializable{
 	 *
 	 * @param q  The amount of O2 required.
 	 * @return  The amount of O2 obtained. This is always <code>q</code>
-	 * unless there weren't enough O2 in the atmosphere.
 	 */
 	public double respiration(double q) {
-		double d = Math.min(q,_O2);
-		_O2 -= d;
-		_CO2 += d;
-		return d;
+		synchronized (_CO2_monitor) {
+			synchronized (_O2_monitor) {
+				_O2 -= q;
+				_CO2 += q;
+				return q;
+			}
+		}
 	}
 	/**
 	 * Decaying organisms and pink, while consuming another organism, release
@@ -360,13 +438,31 @@ public class World implements Serializable{
 	 *
 	 * @param q  The amount of O2 required.
 	 * @return  The amount of O2 obtained. This is always <code>q</code>
-	 * unless there weren't enough O2 in the atmosphere.
 	 */
 	public double decomposition(double q) {
-		double d = Math.min(q,_O2);
-		_O2 -= d;
-		_CH4 += d;
-		return d;
+		synchronized (_CH4_monitor) {
+			synchronized (_O2_monitor) {
+				_O2 -= q;
+				_CH4 += q;
+				return q;
+			}
+		}
+	}
+	/**
+	 * Feeding organisms except pink (but also produced in some other cases) release
+	 * carbon as detritus into the atmosphere
+	 *
+	 * @param q  The amount of O2 required.
+	 * @return  The amount of O2 obtained. This is always <code>q</code>
+	 */
+	public double detritusproduction(double q) {
+		synchronized (_detritus_monitor) {
+			synchronized (_O2_monitor) {
+				_O2 -= q;
+				_detritus += q;
+				return q;
+			}
+		}
 	}
 	/**
 	 * Consume CO2 from the atmosphere to realize the photosynthesis process
@@ -386,10 +482,14 @@ public class World implements Serializable{
 	 * @return  The amount of CO2 obtained.
 	 */
 	public double photosynthesis(double q) {
-		q = Utils.min(q,q*_CO2/Utils.DRAIN_SUBS_DIVISOR,_CO2);
-		_CO2 -= q;
-		_O2 += q;
-		return q;
+		synchronized (_CO2_monitor) {
+			synchronized (_O2_monitor) {
+				q = Utils.min(q,q*_CO2/Utils.DRAIN_SUBS_DIVISOR,_CO2);
+				_CO2 -= q;
+				_O2 += q;
+				return q;
+			}
+		}
 	}
 	/**
 	 * Consume CH4 from the atmosphere to realize the methanotrophic process
@@ -409,10 +509,41 @@ public class World implements Serializable{
 	 * @return  The amount of CH4 obtained.
 	 */
 	public double methanotrophy(double q) {
-		q = Utils.min(q,q*_CH4/Utils.DRAIN_SUBS_DIVISOR,_CH4);
-		_CH4 -= q;
-		_O2 += q;
-		return q;
+		synchronized (_CH4_monitor) {
+			synchronized (_O2_monitor) {
+				q = Utils.min(q,q*_CH4/Utils.DRAIN_SUBS_DIVISOR,_CH4);
+				_CH4 -= q;
+				_O2 += q;
+				return q;
+			}
+		}
+	}
+	/**
+	 * Consume detritus from the atmosphere to realize the filter feeder
+	 * process needed to obtain chemical energy. Frees the same amount
+	 * of O2 to the atmosphere than detritus consumed.
+	 *
+	 * The detritus obtained is calculated as follows: the total length of the
+	 * organism's plankton segments is divided by a fixed parameter that indicates
+	 * plankton segment effectiveness. Then, the result is multiplied by the total
+	 * detritus in the atmosphere and divided by another parameter that indicates
+	 * the concentration of detritus needed to absorb it. The result is the total
+	 * amount of detritus that the organism can get. This value can't be greater than
+	 * the total amount of detritus in the atmosphere, nor the effectiveness of the
+	 * initial length.
+	 *
+	 * @param q  The total length of the organism's plankton segments.
+	 * @return  The amount of detritus obtained.
+	 */
+	public double filterfeeding(double q) {
+		synchronized (_detritus_monitor) {
+			synchronized (_O2_monitor) {
+				q = Utils.min(q,q*_detritus/Utils.DRAIN_SUBS_DIVISOR,_detritus);
+				_detritus -= q;
+				_O2 += q;
+				return q;
+			}
+		}
 	}
 	/**
 	 * Constructor of the World class. All internal structures are initialized and
@@ -424,7 +555,7 @@ public class World implements Serializable{
 		_visibleWorld = visibleWorld;
 		_width = Utils.WORLD_WIDTH;
 		_height = Utils.WORLD_HEIGHT;
-		_organisms = Collections.synchronizedList(new ArrayList<Organism>(Utils.ORGANISMS_VECTOR_SIZE));
+		_organisms = Collections.synchronizedSet(new HashSet<>());
 		inCorridors = Collections.synchronizedList(new ArrayList<InCorridor>());
 		outCorridors = Collections.synchronizedList(new ArrayList<OutCorridor>());
 		worldStatistics = new WorldStatistics(_visibleWorld.getMainWindow());
@@ -456,6 +587,7 @@ public class World implements Serializable{
 		_O2 = Utils.INITIAL_O2;
 		_CO2 = Utils.INITIAL_CO2;
 		_CH4 = Utils.INITIAL_CH4;
+		_detritus = Utils.INITIAL_DETRITUS;
 		NEXT_ID = 0;
 		NEXT_CLADE_PART = 0;
 		_population = 0;
@@ -479,7 +611,7 @@ public class World implements Serializable{
 	 * Remove all corpses from the world and return their organic matter to
 	 * the atmosphere in the form of CO2.
 	 */
-	public void disperseAll() {
+	public synchronized void disperseAll() {
 		Organism b;
 		synchronized (_organisms) {
 			for (Iterator<Organism> it = _organisms.iterator(); it.hasNext();) {
@@ -492,7 +624,7 @@ public class World implements Serializable{
 	/**
 	 * Kill all organisms in the world.
 	 */
-	public void killAll() {
+	public synchronized void killAll() {
 		Organism org;
 		synchronized (_organisms) {
 			for (Iterator<Organism> it = _organisms.iterator(); it.hasNext();) {
@@ -508,7 +640,7 @@ public class World implements Serializable{
 	 *
 	 * @param g  The graphic context to draw to.
 	 */
-	public void draw(Graphics g) {
+	public void draw(Graphics g, boolean fullRedraw) {
 		Organism b;
 		if (_corridorexists) {
 			Corridor c;
@@ -526,51 +658,33 @@ public class World implements Serializable{
 			}
 		}
 		synchronized (_organisms) {
-			for (Iterator<Organism> it = _organisms.iterator(); it.hasNext();) {
-				b = it.next();
-				b.draw(g);
-			}
-		}
-	}
-	/**
-	 * Determines the world's region that needs to be repainted in the associated
-	 * {@link biogenesis.VisualWorld} and instructs it to do it.
-	 *
-	 * For optimization, only paints organisms that has moved in the last frame.
-	 */
-	public void setPaintingRegion() {
-		if (!Utils.repaintWorld()) {
-			return;
-		}
+			if (colDetTree != null && !fullRedraw) {
+				final JViewport viewPort = (JViewport) SwingUtilities.getAncestorOfClass(JViewport.class, (VisibleWorld) _visibleWorld);
+				final Rectangle view = viewPort.getViewRect();
+				final int bucketSize = colDetTree.getBucketSize();
 
-		Organism b;
-		if (_corridorexists) {
-			Corridor c;
-			synchronized (inCorridors) {
-				for (Iterator<InCorridor> it = inCorridors.iterator(); it.hasNext();) {
-					c = it.next();
-					_visibleWorld.repaint(c);
+				final int minx = Math.max(0, (int) (view.x / (double) bucketSize));
+				final int miny = Math.max(0, (int) (view.y / (double) bucketSize));
+				final int maxx = Math.min(colDetTree.getMaxWidth(), (int) ((view.x + view.width) / (double) bucketSize));
+				final int maxy = Math.min(colDetTree.getMaxHeight(), (int) ((view.y + view.height) / (double) bucketSize));
+
+				for (int y = miny; y <= maxy; y++) {
+					for (int x = minx; x <= maxx; x++) {
+						Collection<Organism> bucket = colDetTree.getBucket(x, y);
+						for (Organism o : bucket) {
+							o.draw(g);
+						}
+					}
 				}
-			}
-			synchronized (outCorridors) {
-				for (Iterator<OutCorridor> it = outCorridors.iterator(); it.hasNext();) {
-					c = it.next();
-					_visibleWorld.repaint(c);
-					if (c.getTravellingOrganism() != null)
-						_visibleWorld.repaint(c.getTravellingOrganism());
-				}
-			}
-		}
-		synchronized (_organisms) {
-			for (Iterator<Organism> it = _organisms.iterator(); it.hasNext();) {
-				b = it.next();
-				if (b.hasMoved) {
-					_visibleWorld.repaint(b.lastFrame);
-					_visibleWorld.repaint(b);
+			} else {
+				for (Iterator<Organism> it = _organisms.iterator(); it.hasNext();) {
+					b = it.next();
+					b.draw(g);
 				}
 			}
 		}
 	}
+
 	/**
 	 * Executes a frame. This method iterates through all objects in the world
 	 * and make them to execute a movement. Here is the place where all action
@@ -579,7 +693,7 @@ public class World implements Serializable{
 	 * Additionally, every 20 frames the {@link InfoWindow} is updated, if showed,
 	 * and every 256 frames the time counter is increased by 1.
 	 */
-	public void time() {
+	public synchronized void time() {
 		colDetTree = new OrganismBuckets(_width, _height, 70);
 		if (_corridorexists) {
 			InCorridor c;
@@ -591,45 +705,260 @@ public class World implements Serializable{
 			}
 		}
 		synchronized (_organisms) {
-			/* We can't use an Iterator here because this list has to be changed
-			 * inside Organism.move (when new organisms are born) and we need to
-			 * remove organisms with no energy, so a ConcurrentModificationException
-			 * will be thrown.
-			 */
 			for (Organism o: _organisms) {
-			     colDetTree.insert(o);
-		    }
-			int l = _organisms.size();
-			for (int i=0; i<l; i++) {
-				Organism b = _organisms.get(i);
-				if (!b.move()) {
-					// Organism has no energy -> remove from the list
-					if (Utils.repaintWorld()) {
-						_visibleWorld.repaint(b);
-					}
-					_organisms.remove(i);
-					if (_visibleWorld.getSelectedOrganism() == b)
-						_visibleWorld.setSelectedOrganism(null);
-					l--;
-					i--;
+				colDetTree.insert(o);
+			}
+		}
+		progressAllOrganisms();
+
+		// Reactions turning CO2 and CH4 into each other and detritus into CO2
+		synchronized (_CH4_monitor) {
+			synchronized (_CO2_monitor) {
+				synchronized (_detritus_monitor) {
+					double x = Math.min(getCO2()/Utils.CO2_TO_CH4_DIVISOR,getCO2());
+					_CO2 -= x;
+					_CH4 += x;
+					double y = Math.min(getCH4()/Utils.CH4_TO_CO2_DIVISOR,getCH4());
+					_CH4 -= y;
+					_CO2 += y;
+					double z = Math.min(getDetritus()/Utils.DETRITUS_TO_CO2_DIVISOR,getDetritus());
+					_detritus -= z;
+					_CO2 += z;
 				}
 			}
 		}
-		// Reactions turning CO2 and CH4 into each other
-		double x = Math.min(getCO2()/Utils.CO2_TO_CH4_DIVISOR,getCO2());
-		_CO2 -= x;
-		_CH4 += x;
-		double y = Math.min(getCH4()/Utils.CH4_TO_CO2_DIVISOR,getCH4());
-		_CH4 -= y;
-		_CO2 += y;
 		if (nFrames++ % 20 == 0)
 			_visibleWorld.getMainWindow().getInfoPanel().recalculate();
 		if (nFrames % 256 == 0) {
 			nFrames = 0;
-			worldStatistics.eventTime(_population, getDistinctCladeIDCount(), _O2, _CO2, _CH4, _organisms);
+			worldStatistics.eventTime(_population, getDistinctCladeIDCount(1), getDistinctCladeIDCount(10), getDistinctCladeIDCount(100), _O2, _CO2, _CH4, _detritus, _organisms);
 			_isbackuped = false;
 		}
 	}
+
+	private transient Collection<Organism> checkedOrganisms = Collections.synchronizedSet(new HashSet<>());
+
+	private void progressAllOrganisms() {
+		final int organismCount = _organisms.size();
+		final int threadCount = Utils.between(Utils.THREAD_COUNT, 1, 100);
+
+		if (threadCount > 1) {
+			progressAllOrganismsInParallel(organismCount, threadCount);
+		} else {
+			progressAllOrganismsInSerial(organismCount);
+		}
+	}
+
+	private void progressAllOrganismsInSerial(int organismCount) {
+		for (Organism b : _organisms.toArray(new Organism[0])) {
+			if (!b.move()) {
+				_organisms.remove(b);
+				if (_visibleWorld.getSelectedOrganism() == b) {
+					_visibleWorld.setSelectedOrganism(null);
+				}
+			}
+		}
+	}
+
+	transient List<WorkerThread> workerThreads = new ArrayList<>();
+	transient LinesLocker linesLocker;
+
+	private void progressAllOrganismsInParallel(int organismCount, int threadCount) {
+		// System.out.println("========================================================================================== in thread "+Thread.currentThread().getName());
+		if (checkedOrganisms == null) {
+			checkedOrganisms = new HashSet<>();
+		}
+		checkedOrganisms.clear();
+
+		int lineCount = colDetTree.getMaxWidth() + 1;
+		if (threadCount * 5 > lineCount) { // not enough gap between threads
+			progressAllOrganismsInSerial(organismCount);
+			return;
+		}
+
+		if (workerThreads == null) {
+			workerThreads = new ArrayList<>();
+		}
+		if (workerThreads.size() != threadCount) {
+			// stop all worker threads
+			for (WorkerThread workerThread : workerThreads) {
+				workerThread.interrupt();
+			}
+
+			// create new worker threads
+			workerThreads.clear();
+			for (int i = 0; i < threadCount; i++) {
+				WorkerThread workerThread = new WorkerThread();
+				workerThread.start();
+				workerThreads.add(workerThread);
+			}
+		}
+		if (linesLocker == null || linesLocker.semaphores.length != lineCount) {
+			linesLocker = new LinesLocker(lineCount);
+		}
+
+		// Split the buckets into vertical lines.
+		// Do one line per thread.
+		// Do it until all lines are done.
+		int[] startIndexes = new int[threadCount]; // index where the thead starts
+		int[] endIndexes = new int[threadCount]; // index where the thead ends, inclusive
+		for (int i = 0; i < threadCount; i++) {
+			startIndexes[i] = lineCount * i / threadCount;
+			if (i > 0) {
+				endIndexes[i - 1] = startIndexes[i] - 1;
+			}
+		}
+		endIndexes[threadCount - 1] = lineCount - 1;
+
+		// do one line per thread
+		for (int i = 0; i < threadCount; i++) {
+			workerThreads.get(i).addJob(new WorkerJob(startIndexes[i], endIndexes[i]));
+		}
+
+		// wait till all jobs finish
+		for (int i = 0; i < threadCount; i++) {
+			// System.out.println("======> waiting for thread " + workerThreads.get(i).getName() + " to finish");
+			workerThreads.get(i).waitTillDone();
+			// System.out.println("======> waiting for thread " + workerThreads.get(i).getName() + " to finish done");
+		}
+	}
+
+	class LinesLocker {
+		Semaphore[] semaphores;
+
+		LinesLocker(int lineCount) {
+			// System.out.println("======> create LinesLocker with " + lineCount + " lines");
+			semaphores = new Semaphore[lineCount];
+			for (int i = 0; i < lineCount; i++) {
+				semaphores[i] = new Semaphore(1);
+			}
+		}
+
+		void lock(int index) {
+			if (index >= 0 && index < semaphores.length) {
+				// System.out.println("======> lock line " + index + " by thread " + Thread.currentThread().getName());
+				semaphores[index].acquireUninterruptibly();
+				// System.out.println("======> lock line " + index + " by thread " + Thread.currentThread().getName() + " done");
+			}
+		}
+
+		void unlock(int index) {
+			if (index >= 0 && index < semaphores.length) {
+				// System.out.println("======> unlock line " + index + " by thread " + Thread.currentThread().getName());
+				semaphores[index].release();
+				// System.out.println("======> unlock line " + index + " by thread " + Thread.currentThread().getName() + " done");
+			}
+		}
+
+		void lockRange(int from, int to) {
+			for (int i = from; i <= to; i++) {
+				lock(i);
+			}
+		}
+
+		void unlockRange(int from, int to) {
+			for (int i = from; i <= to; i++) {
+				unlock(i);
+			}
+		}
+	}
+
+	private static int nextWorkerThreadId = 0;
+	class WorkerThread extends Thread {
+		Queue<WorkerJob> jobs = new LinkedList<>();
+		Semaphore doneSemaphore = new Semaphore(1);
+
+		WorkerThread() {
+			super("WorkerThread-" + nextWorkerThreadId++);
+			doneSemaphore.acquireUninterruptibly();
+		}
+
+		public void run() {
+			while (!isInterrupted()) {
+				WorkerJob job = null;
+				synchronized (jobs) {
+					if (jobs.size() > 0) {
+						job = jobs.remove();
+					}
+				}
+				if (job != null) {
+					job.run();
+				} else {
+					// wait for a job
+					// System.out.println("=====> gonna wait for a job in thread " + Thread.currentThread().getName() + "");
+					try {
+						synchronized (jobs) {
+							// System.out.println("=======> notifying thread " + Thread.currentThread().getName() + " done");
+							doneSemaphore.release();
+							jobs.wait();
+						}
+					} catch (InterruptedException e) {
+						// System.out.println("=====> thread " + Thread.currentThread().getName() + " interrupted");
+						break;
+					}
+				}
+			}
+		}
+
+		public void addJob(WorkerJob job) {
+			// System.out.println("======> adding a job in thread " + Thread.currentThread().getName() + " to process lines " + job.startIndex + " to " + job.endIndex + "");
+			synchronized (jobs) {
+				jobs.add(job);
+			}
+			doneSemaphore.acquireUninterruptibly();
+			synchronized (jobs) {
+				jobs.notify();
+			}
+		}
+
+		public void waitTillDone() {
+			doneSemaphore.acquireUninterruptibly();
+			doneSemaphore.release();
+		}
+	}
+
+	class WorkerJob {
+		final int startIndex;
+		final int endIndex;
+
+		public WorkerJob(int startIndex, int endIndex) {
+			this.startIndex = startIndex;
+			this.endIndex = endIndex;
+		}
+
+		public void run() {
+			linesLocker.lockRange(startIndex - 4, startIndex + 4);
+			int index = startIndex;
+			while (index <= endIndex) {
+				progressLineInBucket(index);
+				linesLocker.unlock(index - 4);
+				index++;
+				linesLocker.lock(index + 4);
+			}
+			linesLocker.unlockRange(index - 4, index + 4);
+			// System.out.println("=====> job done in thread " + Thread.currentThread().getName());
+		}
+	}
+
+	private void progressLineInBucket(final int index) {
+		for (int y = 0; y <= colDetTree.getMaxHeight(); y++) {
+			Collection<Organism> bucket = colDetTree.getBucket(index, y);
+			for (Organism o : bucket) {
+				synchronized (checkedOrganisms) {
+					if (!checkedOrganisms.add(o)) {
+						continue;
+					}
+				}
+				if (!o.move()) {
+					_organisms.remove(o);
+					if (_visibleWorld.getSelectedOrganism() == o) {
+						_visibleWorld.setSelectedOrganism(null);
+					}
+				}
+			}
+		}
+	}
+
 	/**
 	 * Add a pair of biological corridors to the world.
 	 * This method is called by {@link biogenesis.Connection.setState} when
@@ -719,16 +1048,15 @@ public class World implements Serializable{
 	 * rectangle of {@code b1} or null if there is no such organism.
 	 */
 	public Organism fastCheckHit(Organism b1) {
-		Collection<Organism> collidingOrgs = colDetTree.query(b1);
-
-		for (Organism org : collidingOrgs) {
+		return colDetTree.findFirst(b1, org -> {
 			if (b1 != org) {
 				if (b1.intersects(org)) {
-					return org;
+					return true;
 				}
 			}
-		}
-		return null;
+
+			return false;
+		});
 	}
 	/**
 	 * Used for transformations.
@@ -742,17 +1070,14 @@ public class World implements Serializable{
 	 */
 
 	public Organism transformCheckHit(Organism b1) {
-
-		Collection<Organism> collidingOrgs = colDetTree.query(b1);
-
-		for (Organism org : collidingOrgs) {
+		return colDetTree.findFirst(b1, org -> {
 			if ((b1 != org) && (b1._ID != org._parentID) && (b1._parentID != org._ID)) {
 				if (b1.intersects(org)) {
-					return b1;
+					return true;
 				}
 			}
-		}
-		return null;
+			return false;
+		});
 	}
 	/**
 	 * Checks if an organism hits another organism.
@@ -762,22 +1087,21 @@ public class World implements Serializable{
 	 * organism exists.
 	 */
 	public Organism checkHit(Organism org1) {
-		Collection<Organism> collidingOrgs = colDetTree.query(org1);
-
-		for (Organism collidingOrganism : collidingOrgs) {
+		return colDetTree.findFirst(org1, collidingOrganism -> {
 			if (collidingOrganism != org1) {
 				// First check if the bounding boxes intersect
 				if (org1.intersects(collidingOrganism)) {
 					if (collidingOrganism.getEnergy() >= Utils.tol && org1.getEnergy() >= Utils.tol) {
 						// Check if they are touching
 						if (org1.contact(collidingOrganism)) {
-							return org1;
+							return true;
 						}
 					}
 				}
 			}
-		}
-		return null;
+
+			return false;
+		});
 	}
 	/**
 	 * Adds an organism to the world. Once added, the new organism will move at every
