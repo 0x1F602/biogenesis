@@ -38,5 +38,13 @@
             <url>https://maven.pkg.github.com/0x1f602/biogenesis</url>
         </repository>
     </distributionManagement>
+
+    <servers>
+        <server>
+            <id>github</id>
+            <username>0x1F602</username>
+            <password>${{ secrets.GITHUB_TOKEN }}</password>
+        </server>
+    </servers>
     <!-- Additional configurations, plugins, properties, etc. can be added as necessary -->
 </project>
