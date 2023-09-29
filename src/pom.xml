@@ -17,6 +17,6 @@
         </dependency>
         <!-- You can add more dependencies here as needed -->
     </dependencies>
-
+    <sourceDirectory>src/biogenesis</sourceDirectory>
     <!-- Additional configurations, plugins, properties, etc. can be added as necessary -->
 </project>
