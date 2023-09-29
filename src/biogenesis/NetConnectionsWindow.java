@@ -61,7 +61,6 @@ public class NetConnectionsWindow extends JDialog {
 		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 		setComponents();
 		pack();
-		WindowManager.registerWindow(this, getWidth(), getHeight(), 0, 0);
 		setResizable(false);
 		addWindowListener(new AppFocusWindowAdapter());
 		setVisible(true);

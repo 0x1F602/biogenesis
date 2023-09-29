@@ -136,10 +136,6 @@ public class Organism extends Rectangle {
 	 */
 	protected double _maintenance;
 	/**
-	 * Segments filter feeding
-	 */
-	protected double _filterfeeding;
-	/**
 	 * Segments methanotrophy
 	 */
 	protected double _methanotrophy;
@@ -160,7 +156,7 @@ public class Organism extends Rectangle {
 	 */
 	protected double _leafphoto;
 	/**
-	 * Spin of spin and spring segments
+	 * Spin of spring segments
 	 */
 	protected int _spin;
 	/**
@@ -220,10 +216,6 @@ public class Organism extends Rectangle {
 	 */
 	protected boolean _isafungus;
 	/**
-	 * Indicates if this organism is plankton (filter feeder)
-	 */
-	protected int _isplankton;
-	/**
 	 * Indicates if this organism is a fungal consumer (modified pink)
 	 */
 	protected boolean _modifiespink;
@@ -244,13 +236,9 @@ public class Organism extends Rectangle {
 	 */
 	protected boolean _isspike;
 	/**
-	 * Indicates if this organism has protective segments
-	 */
-	protected boolean _isprotective;
-	/**
 	 * Indicates if this organism has movement segments
 	 */
-	protected int _canmove = 0;
+	protected boolean _canmove;
 	/**
 	 * Indicates if this organism has teal segments
 	 */
@@ -425,12 +413,10 @@ public class Organism extends Rectangle {
 	/**
 	 * X coordinate of this organim's center of gravity.
 	 */
-	@Expose
 	protected int _centerX;
 	/**
 	 * Y coordinate of this organim's center of gravity.
 	 */
-	@Expose
 	protected int _centerY;
 	/**
 	 * Like _centerX but with double precision to be able to make movements slower than a pixel.
@@ -516,10 +502,6 @@ public class Organism extends Rectangle {
 	 * Effective segment reactions, taken from the genetic code if alive or brown if dead.
 	 */
 	protected int[] _segmaroonReaction;
-	/**
-	 * Effective segment reactions, taken from the genetic code if alive or brown if dead.
-	 */
-	protected int[] _segcrimsonReaction;
 	/**
 	 * Effective segment reactions, taken from the genetic code if alive or brown if dead.
 	 */
@@ -708,6 +690,7 @@ public class Organism extends Rectangle {
 	 * Indicates if the organism is active.
 	 */
 	protected boolean active = true;
+	private static transient Vector2D v = new Vector2D();
 	/**
 	 * Returns true if this organism is alive, false otherwise.
 	 *
@@ -866,7 +849,6 @@ public class Organism extends Rectangle {
 		_segvioletReaction = new int[_segments];
 		_segvirusReaction = new int[_segments];
 		_segmaroonReaction = new int[_segments];
-		_segcrimsonReaction = new int[_segments];
 		_segoliveReaction = new int[_segments];
 		_segmintReaction = new int[_segments];
 		_segcreamReaction = new int[_segments];
@@ -931,7 +913,7 @@ public class Organism extends Rectangle {
 		}
 	}
 	/*
-	 * Restores and removes jade, sky and spring or spin spinning
+	 * Restores and removes jade, sky and spring spin
 	 */
 	final void segmentsCheckPlant() {
 		int i;
@@ -958,13 +940,6 @@ public class Organism extends Rectangle {
 				if (_geneticCode.getGene(i%_geneticCode.getNGenes()).getColor().equals(Utils.ColorSPRING)) {
 					_spin += (int)(10 * _geneticCode.getGene(i%_geneticCode.getNGenes()).getLength());
 				}
-				break;
-			case SPIN:
-				if (_canmove == 0) {
-					_canmove = 1;
-				}
-				_spin += (int)(Utils.SPIN_ENERGY_CONSUMPTION * _geneticCode.getGene(i%_geneticCode.getNGenes()).getLength());
-				_mphoto[i] = 0;
 				break;
 			}
 		}
@@ -1001,8 +976,6 @@ public class Organism extends Rectangle {
 			_gold = 0;
 			_max_age = Utils.MAX_AGE + (_segments/Utils.AGE_DIVISOR);
 		}
-		boolean isspin =false;
-		_canreact =false;
 		_isreproductive =false;
 		if (_skyversion > 0) {
 			_skyversion = -1;
@@ -1033,16 +1006,8 @@ public class Organism extends Rectangle {
 					_spin += (int)(10 * _geneticCode.getGene(i%_geneticCode.getNGenes()).getLength());
 				}
 				break;
-			case SPIN:
-				if (_canmove == 0) {
-					_canmove = 1;
-				}
-				isspin =true;
-				_spin += (int)(Utils.SPIN_ENERGY_CONSUMPTION * _geneticCode.getGene(i%_geneticCode.getNGenes()).getLength());
-				_mphoto[i] = 0;
-				break;
 			case TEAL:
-				_canmove = 2;
+				_canmove =true;
 				_canreact =true;
 				if (_geneticCode.getPassive() == false) {
 					_useframemovement =true;
@@ -1052,7 +1017,7 @@ public class Organism extends Rectangle {
 				}
 				break;
 			case CYAN:
-				_canmove = 2;
+				_canmove =true;
 				_useframemovement =true;
 				_mphoto[i] = -23;
 				break;
@@ -1071,9 +1036,6 @@ public class Organism extends Rectangle {
 				break;
 			case MAROON:
 				_mphoto[i] = -1;
-				break;
-			case CRIMSON:
-				_mphoto[i] = -2;
 				break;
 			case PINK:
 				_mphoto[i] = -1;
@@ -1103,14 +1065,10 @@ public class Organism extends Rectangle {
 				if (_geneticCode.getModifiesblack() <= 2) {
 					_mphoto[i] = -8;
 				} else {
-					if (_geneticCode.getModifiesblack() >= 5) {
-						_mphoto[i] = -4;
+					if (_geneticCode.getAdaptblack() == 24) {
+						_mphoto[i] = -8;
 					} else {
-						if (_geneticCode.getAdaptblack() == 24) {
-							_mphoto[i] = -8;
-						} else {
-							_mphoto[i] = -9;
-						}
+						_mphoto[i] = -9;
 					}
 				}
 				break;
@@ -1258,20 +1216,10 @@ public class Organism extends Rectangle {
 		    }
 		}
 		// Can this organism dodge?
-		if ((_canreact) || (isspin)) {
-			if ((!_isaconsumer) && (!_isafungus) && (_isplankton == 0) && (!_isakiller) && (_blackversion >= 0)
-				&& (((!_isinfectious) && (!_iscoral) && (_plagueversion == 0) && (!_isprotective)) || ((!_isaplant) && ((_geneticCode.getPassive()) || (_spin > 0))))) {
+		if (_canreact) {
+			if ((!_isaconsumer) && (!_isafungus) && (!_isakiller) && (_skyversion == 0)
+				&& (((!_isinfectious) && (!_iscoral) && (_plagueversion == 0)) || ((!_isaplant) && (_methanotrophy == 0) && (_geneticCode.getPassive())))) {
 				_candodge =true;
-			} else {
-				if (_isonlyc4 != 2) {
-					_candodge =false;
-					_dodge =false;
-				}
-			}
-		} else {
-			if (_isonlyc4 != 2) {
-				_candodge =false;
-				_dodge =false;
 			}
 		}
 		// Calculate jade delay used in restoration of the color
@@ -1307,15 +1255,9 @@ public class Organism extends Rectangle {
 			if (_isaplant) {
 			    _earlyReproduceEnergy = _reproduceEnergy - _earlyReproduceEnergy;
 			    if ((_isonlyc4 == 2) && (_isblond) && (!_isenhanced)) {
-			    	if (_sporeversion < 0) {
-			    		if (_earlyReproduceEnergy < 40) {
-							_earlyReproduceEnergy = 40;
-						}
-			    	} else {
-			    		if (_earlyReproduceEnergy < 30) {
-							_earlyReproduceEnergy = 30;
-						}
-			    	}
+			    	if (_earlyReproduceEnergy < 30) {
+						_earlyReproduceEnergy = 30;
+					}
 			    } else {
 			    	if (_earlyReproduceEnergy < 40) {
 						_earlyReproduceEnergy = 40;
@@ -1324,44 +1266,26 @@ public class Organism extends Rectangle {
 			} else {
 				if ((_isaconsumer) || (_isafungus)) {
 					_earlyReproduceEnergy = _reproduceEnergy - _earlyReproduceEnergy;
-					if (_sporeversion < 0) {
-			    		if (_earlyReproduceEnergy < 40) {
-							_earlyReproduceEnergy = 40;
-						}
-			    	} else {
-			    		if (_earlyReproduceEnergy < 21) {
-							_earlyReproduceEnergy = 21;
-						}
-			    	}
+					if (_earlyReproduceEnergy < 21) {
+						_earlyReproduceEnergy = 21;
+					}
 				} else {
 					if ((_transfersenergy) && (_isinfectious) && (_isblond)) {
 						_earlyReproduceEnergy = _reproduceEnergy - _earlyReproduceEnergy;
-						if (_sporeversion < 0) {
-				    		if (_earlyReproduceEnergy < 40) {
-								_earlyReproduceEnergy = 40;
-							}
-				    	} else {
-				    		if (_earlyReproduceEnergy < 21) {
-								_earlyReproduceEnergy = 21;
-							}
-				    	}
+						if (_earlyReproduceEnergy < 21) {
+							_earlyReproduceEnergy = 21;
+						}
 					} else {
-						if (_sporeversion == 6) {
+						if ((_sporeversion < 0) || (_sporeversion == 6)) {
 							_earlyReproduceEnergy = _reproduceEnergy - _earlyReproduceEnergy;
 							if (_earlyReproduceEnergy < 21) {
 								_earlyReproduceEnergy = 21;
 							}
 						} else {
 							_earlyReproduceEnergy = _reproduceEnergy - _earlyReproduceEnergy;
-							if (_sporeversion < 0) {
-					    		if (_earlyReproduceEnergy < 40) {
-									_earlyReproduceEnergy = 40;
-								}
-					    	} else {
-					    		if (_earlyReproduceEnergy < 14) {
-									_earlyReproduceEnergy = 14;
-								}
-					    	}
+							if (_earlyReproduceEnergy < 14) {
+								_earlyReproduceEnergy = 14;
+							}
 						}
 					}
 				}
@@ -1404,7 +1328,7 @@ public class Organism extends Rectangle {
 		_haseyes =false;
 		boolean enhancedconsumer =false;
 		boolean ispink =false;
-		boolean isspin =false;
+		int isprotective = 0;
 		_updateEffects = 2;
 		if (_geneticCode.getSiblingBattle()) {
 			_siblingbattle =true;
@@ -1424,8 +1348,6 @@ public class Organism extends Rectangle {
 		if (_geneticCode.getAltruist()) {
 			_altruist =true;
 		}
-		_methanotrophy = 0;
-		_filterfeeding = 0;
 		double photofactor = 0;
 		if (_symmetry == 8) {
 			if (_geneticCode.getNGenes() != 1) {
@@ -1528,25 +1450,10 @@ public class Organism extends Rectangle {
 				if (_age == 0) {
 					_mphoto[i] = Utils.PURPLE_ENERGY_CONSUMPTION * photomultiplier * _geneticCode.getGene(i%_geneticCode.getNGenes()).getLength();
 				}
-				_methanotrophy += 1;
-				break;
-			case PLANKTON:
-				if (_age == 0) {
-					_mphoto[i] = Utils.PLANKTON_ENERGY_CONSUMPTION * photomultiplier * _geneticCode.getGene(i%_geneticCode.getNGenes()).getLength();
-				}
-				_filterfeeding += 1;
-				_isplankton = 1;
-				break;
-			case SPIN:
-				if (_canmove == 0) {
-					_canmove = 1;
-				}
-				isspin =true;
-				_spin += (int)(Utils.SPIN_ENERGY_CONSUMPTION * _geneticCode.getGene(i%_geneticCode.getNGenes()).getLength());
-				_mphoto[i] = 0;
+				_methanotrophy = 1;
 				break;
 			case TEAL:
-				_canmove = 2;
+				_canmove =true;
 				_canreact =true;
 				if (_geneticCode.getPassive() == false) {
 					_useframemovement =true;
@@ -1556,7 +1463,7 @@ public class Organism extends Rectangle {
 				}
 				break;
 			case CYAN:
-				_canmove = 2;
+				_canmove =true;
 				_useframemovement =true;
 				_mphoto[i] = -23;
 				break;
@@ -1586,10 +1493,6 @@ public class Organism extends Rectangle {
 			case MAROON:
 				_isaconsumer =true;
 				_mphoto[i] = -1;
-				break;
-			case CRIMSON:
-				_isaconsumer =true;
-				_mphoto[i] = -2;
 				break;
 			case PINK:
 				ispink =true;
@@ -1649,7 +1552,9 @@ public class Organism extends Rectangle {
 				_mphoto[i] = -4;
 				break;
 			case FALLOW:
-				_isprotective = true;
+				if (isprotective <= 2) {
+					isprotective = 3;
+				}
 				if (_fallowversion == 0) {
 					if (_geneticCode.getModifiesfallow() == 1) {
 						_fallowversion = 1;
@@ -1738,8 +1643,8 @@ public class Organism extends Rectangle {
 			case ROSE:
 				if (_transfersenergy == false) {
     				_transfersenergy =true;
-    			    _lengthfriend = (int)(Math.round(_geneticCode.getGene(i%_geneticCode.getNGenes()).getLength()*10)/10);
-    			    _thetafriend = (int)(Math.round(_geneticCode.getGene(i%_geneticCode.getNGenes()).getTheta()*180.0/Math.PI)/10);
+    			    _lengthfriend = (int)(_geneticCode.getGene(i%_geneticCode.getNGenes()).getLength());
+    			    _thetafriend = (int)(_geneticCode.getGene(i%_geneticCode.getNGenes()).getTheta());
     			}
 				if (_altruist) {
 					_mphoto[i] = -4;
@@ -1751,27 +1656,35 @@ public class Organism extends Rectangle {
 				}
 				break;
 			case VIOLET:
-				_isprotective = true;
+				if (isprotective == 0) {
+					isprotective = 1;
+				}
 				_mphoto[i] = -4;
 				break;
 			case OCHRE:
-				_isprotective = true;
+				if (isprotective <= 1) {
+					isprotective = 2;
+				}
 				_mphoto[i] = -1;
 				break;
 			case OLIVE:
-				_isprotective = true;
+				isprotective = 4;
 				_mphoto[i] = -4;
 				break;
 			case DARKOLIVE:
-				_isprotective = true;
+				isprotective = 4;
 				_mphoto[i] = -20;
 				break;
 			case BLUE:
-				_isprotective = true;
+				if (isprotective <= 2) {
+					isprotective = 3;
+				}
 				_mphoto[i] = -0.1;
 				break;
 			case SKY:
-				_isprotective = true;
+				if (isprotective <= 2) {
+					isprotective = 3;
+				}
 				if (_skyversion <= 0) {
 					if (_geneticCode.getModifiessky()) {
 						_skyversion = 2;
@@ -1782,7 +1695,9 @@ public class Organism extends Rectangle {
 				_mphoto[i] = -4;
 				break;
 			case DEEPSKY:
-				_isprotective = true;
+				if (isprotective <= 2) {
+					isprotective = 3;
+				}
 				if (_skyversion <= 0) {
 					if (_geneticCode.getModifiessky()) {
 						_skyversion = 2;
@@ -1838,78 +1753,71 @@ public class Organism extends Rectangle {
 					_usepretoucheffects =true;
 					_mphoto[i] = -8;
 				} else {
-					if (_geneticCode.getModifiesblack() >= 5) {
-						_blackversion = -3;
-						_mphoto[i] = -4;
+					if (_geneticCode.getAdaptblack() == 24) {
+						_mphoto[i] = -8;
 					} else {
-						if (_geneticCode.getAdaptblack() == 25) {
-							_mphoto[i] = -8;
-						} else {
-							_mphoto[i] = -9;
-						}
-						if (_blackversion == 0) {
-							_blackversion = _geneticCode.getAdaptblack();
-							_timeToReproduceMax -= 6;
-							if (_blackversion <= 2) {
-								if (_blackversion == 1) {
-									setColor(Color.GREEN);
-								} else {
-									setColor(Utils.ColorBARK);
-								}
-							} else if (_blackversion <= 9) {
-								if (_blackversion == 3) {
-									setColor(Color.RED);
-								} else if (_blackversion == 4) {
-									setColor(Utils.ColorFIRE);
-								} else if (_blackversion == 5) {
-									setColor(Color.ORANGE);
-								} else if (_blackversion == 6) {
-									setColor(Utils.ColorMAROON);
-								} else if (_blackversion == 7) {
-									setColor(Utils.ColorCRIMSON);
-								} else if (_blackversion == 8) {
-									setColor(Color.PINK);
-								} else {
-									setColor(Utils.ColorCREAM);
-								}
-							} else if (_blackversion <= 13) {
-								if (_blackversion == 10) {
-									setColor(Color.LIGHT_GRAY);
-								} else if (_blackversion == 11) {
-									setColor(Utils.ColorSPIKEPOINT);
-								} else if (_blackversion == 12) {
-									setColor(Utils.ColorLILAC);
-								} else {
-									setColor(Color.GRAY);
-								}
-							} else if (_blackversion <= 19) {
-								if (_blackversion == 14) {
-									setColor(Utils.ColorVIOLET);
-								} else if (_blackversion == 15) {
-									setColor(Utils.ColorOLIVE);
-								} else if (_blackversion == 16) {
-									setColor(Utils.ColorSKY);
-								} else if (_blackversion == 17) {
-									setColor(Color.BLUE);
-								} else if (_blackversion == 18) {
-									setColor(Utils.ColorOCHRE);
-								} else {
-									setColor(Utils.ColorFALLOW);
-								}
+						_mphoto[i] = -9;
+					}
+					if (_blackversion == 0) {
+						_blackversion = _geneticCode.getAdaptblack();
+						_timeToReproduceMax -= 6;
+						if (_blackversion <= 2) {
+							if (_blackversion == 1) {
+								setColor(Color.GREEN);
 							} else {
-								if (_blackversion == 20) {
-									setColor(Color.WHITE);
-								} else if (_blackversion == 21) {
-									setColor(Utils.ColorPLAGUE);
-								} else if (_blackversion == 22) {
-									setColor(Utils.ColorCORAL);
-								} else if (_blackversion == 23) {
-									setColor(Utils.ColorMINT);
-								} else if (_blackversion == 24) {
-									setColor(Color.MAGENTA);
-								} else {
-									setColor(Utils.ColorINDIGO);
-								}
+								setColor(Utils.ColorBARK);
+							}
+						} else if (_blackversion <= 8) {
+							if (_blackversion == 3) {
+								setColor(Color.RED);
+							} else if (_blackversion == 4) {
+								setColor(Utils.ColorFIRE);
+							} else if (_blackversion == 5) {
+								setColor(Color.ORANGE);
+							} else if (_blackversion == 6) {
+								setColor(Utils.ColorMAROON);
+							} else if (_blackversion == 7) {
+								setColor(Color.PINK);
+							} else {
+								setColor(Utils.ColorCREAM);
+							}
+						} else if (_blackversion <= 12) {
+							if (_blackversion == 9) {
+								setColor(Color.LIGHT_GRAY);
+							} else if (_blackversion == 10) {
+								setColor(Utils.ColorSPIKEPOINT);
+							} else if (_blackversion == 11) {
+								setColor(Utils.ColorLILAC);
+							} else {
+								setColor(Color.GRAY);
+							}
+						} else if (_blackversion <= 18) {
+							if (_blackversion == 13) {
+								setColor(Utils.ColorVIOLET);
+							} else if (_blackversion == 14) {
+								setColor(Utils.ColorOLIVE);
+							} else if (_blackversion == 15) {
+								setColor(Utils.ColorSKY);
+							} else if (_blackversion == 16) {
+								setColor(Color.BLUE);
+							} else if (_blackversion == 17) {
+								setColor(Utils.ColorOCHRE);
+							} else {
+								setColor(Utils.ColorFALLOW);
+							}
+						} else {
+							if (_blackversion == 19) {
+								setColor(Color.WHITE);
+							} else if (_blackversion == 20) {
+								setColor(Utils.ColorPLAGUE);
+							} else if (_blackversion == 21) {
+								setColor(Utils.ColorCORAL);
+							} else if (_blackversion == 22) {
+								setColor(Utils.ColorMINT);
+							} else if (_blackversion == 23) {
+								setColor(Color.MAGENTA);
+							} else {
+								setColor(Utils.ColorDARK);
 							}
 						}
 					}
@@ -1933,25 +1841,20 @@ public class Organism extends Rectangle {
 				}
 			}
 		}
-		if (_blackversion != 0) {
-			if (((_geneticCode.getModifiesblack() == 4) || (_geneticCode.getModifiesblack() == 6)) && (_reproducelate == 0) && (_age == 0)) {
-				int b;
-				for (b=_segments-1; b>=0; b--) {
-		            if (_segColor[b].equals(Utils.ColorDARK)) {
-		            	_reproduceEnergy -= 3;
-					}
+		if ((_blackversion > 0) && (_geneticCode.getModifiesblack() == 4) && (_reproducelate == 0) && (_age == 0)) {
+			int b;
+			for (b=_segments-1; b>=0; b--) {
+	            if (_segColor[b].equals(Utils.ColorDARK)) {
+	            	_reproduceEnergy -= 3;
 				}
-			}
-			if (_blackversion == -3) {
-				_blackversion = 0;
 			}
 		}
 		if (_isonlyc4 > 0) {
-			if ((!_isaplant) && (_methanotrophy == 0) && (_isplankton == 0) && (_blackversion >= 0)) {
-				if ((!_isaconsumer) && (!_isafungus) && (!_isakiller) && (_plagueversion == 0) && (!_isprotective)) {
-					if ((!_iscoral) && (!_isinfectious)) {
+			if ((!_isaplant) && (_methanotrophy == 0) && (_blackversion >= 0)) {
+				if ((!_isaconsumer) && (!_isafungus) && (!_isakiller) && (!_isinfectious) && (_plagueversion == 0) && (isprotective == 0)) {
+					if (!_iscoral) {
 						_isonlyc4 = 2;
-						_candodge =true;
+						_candodge =true;				
 						if ((_indigo > 0) && (_jadefactor == 0)) {
 							_jadefactor = -1;
 						}
@@ -1959,31 +1862,25 @@ public class Organism extends Rectangle {
 						for (j=_segments-1; j>=0; j--) {
 							switch (getTypeColor(_segColor[j])) {
 							case C4:
-								if ((_sporetime == 0) || (_geneticCode.getModifiesspore() == 3) || (_geneticCode.getModifiesspore() == 4)) {
-									_mphoto[j] = Utils.C4_ENERGY_CONSUMPTION * photomultiplier * 1.04125 * (11 + _geneticCode.getGene(j%_geneticCode.getNGenes()).getLength());
+								if ((_sporetime == 0) || (_geneticCode.getModifiesspore() <= 6)) {
+									_mphoto[j] = Utils.C4_ENERGY_CONSUMPTION * photomultiplier * (11 + (1.048 * _geneticCode.getGene(j%_geneticCode.getNGenes()).getLength()));
 								}
 								break;
 							case LAVENDER:
-								if ((_reproducelate == 0) && (_age == 0)) {
-									_reproduceEnergy -= 1;
-								}
-								break;
 							case MINT:
-							case MAGENTA:
-							case ROSE:
 								if ((_reproducelate == 0) && (_age == 0)) {
 									_reproduceEnergy -= 2;
 								}
 								break;
 							case SPORE:
-								if ((_geneticCode.getModifiesspore() == 3) || (_geneticCode.getModifiesspore() == 4)) {
+								if ((_geneticCode.getModifiesspore() >= 3) && (_geneticCode.getModifiesspore() <= 6)) {
 									if ((_reproducelate == 0) && (_age == 0)) {
 										_reproduceEnergy -= 3;
 									}
 								}
 								break;
 							case DARKGRAY:
-								if ((_sporetime == 0) || (_geneticCode.getModifiesspore() == 3) || (_geneticCode.getModifiesspore() == 4)) {
+								if ((_sporetime == 0) || ((_geneticCode.getModifiesspore() >= 3) && (_geneticCode.getModifiesspore() <= 6))) {
 									if ((_reproducelate == 0) && (_age == 0)) {
 										_reproduceEnergy -= 3;
 									}
@@ -2001,18 +1898,6 @@ public class Organism extends Rectangle {
 								break;
 							}
 						}
-					} else if (_isinfectious) {
-						_isonlyc4 = 4;
-						int j;
-						for (j=_segments-1; j>=0; j--) {
-							switch (getTypeColor(_segColor[j])) {
-							case C4:
-								if ((_sporetime == 0) || (_geneticCode.getModifiesspore() <= 6)) {
-									_mphoto[j] = Utils.C4_ENERGY_CONSUMPTION * photomultiplier * 1.04125 * (11 + _geneticCode.getGene(j%_geneticCode.getNGenes()).getLength());
-								}
-								break;
-							}
-						}
 					} else {
 						_isonlyc4 = 3;
 						int j;
@@ -2020,7 +1905,7 @@ public class Organism extends Rectangle {
 							switch (getTypeColor(_segColor[j])) {
 							case C4:
 								if ((_sporetime == 0) || (_geneticCode.getModifiesspore() <= 6)) {
-									_mphoto[j] = Utils.C4_ENERGY_CONSUMPTION * photomultiplier * 1.04125 * (11 + _geneticCode.getGene(j%_geneticCode.getNGenes()).getLength());
+									_mphoto[j] = Utils.C4_ENERGY_CONSUMPTION * photomultiplier * (11 + (1.048 * _geneticCode.getGene(j%_geneticCode.getNGenes()).getLength()));
 								}
 								break;
 							}
@@ -2032,20 +1917,29 @@ public class Organism extends Rectangle {
 			}
 			_isaplant =true;
 		}
-		// Add the nerf for lower symmetric plants at lower CO2
-		if ((_isaplant) && (_symmetry <= 7)) {
+        if ((_isaplant) && (_symmetry <= 7)) {
         	if (_symmetry >= 6) {
 				_lowersymmetric = 600;
 			} else {
 				if (_symmetry >= 4) {
-					_lowersymmetric = 700;
+					_lowersymmetric = 600 + 200;
 				} else {
-					if (_symmetry >= 2) {
-						_lowersymmetric = 800;
+					if ((_symmetry <= 2) && (!_isaconsumer) && (!_isafungus) && (!_isakiller) && (_blackversion >= 0) && (isprotective < 3)) {
+						_lowersymmetric = 600 + (1200 / (_symmetry + 1));
 					} else {
-						_lowersymmetric = 1150;
+						_lowersymmetric = 700 + (1200 / (_symmetry + 1));
 					}
 				}
+			}
+		}
+		// Can this organism dodge?
+		if (_canreact) {
+			if ((!_isaconsumer) && (!_isafungus) && (!_isakiller) && (_blackversion >= 0) && (_skyversion == 0) && (!_modifiesleaf)
+				&& (((!_isinfectious) && (!_iscoral) && (_plagueversion == 0) && (isprotective < 4)) || ((!_isaplant) && (_methanotrophy == 0) && (_geneticCode.getPassive())))) {
+				_candodge =true;
+			} else {
+				_candodge =false;
+				_dodge =false;
 			}
 		}
 		// Calculate jade delay used in restoration of the color
@@ -2055,43 +1949,6 @@ public class Organism extends Rectangle {
 			} else {
 				_jadefactor = Utils.DARKJADE_DELAY * 2;
 			}
-		}
-		// Give non green filterfeeders the ability of jade during virus hatching, then make them count as plants and lower effectivity for mixed organisms
-		if (_isplankton > 0) {
-			if (!_isaplant) {
-				if (_jadefactor == 0) {
-					_jadefactor = -1;
-				}
-			}
-			if ((_isaplant) || (_isaconsumer) || (_methanotrophy > 0)) {
-				int q;
-				double filterfactor = 0;
-				if (_geneticCode.getNGenes() > 1) {
-					filterfactor = (0.5 + ((_filterfeeding / _symmetry) / (10 * (_geneticCode.getNGenes() - 1))));
-				} else {
-					filterfactor = (0.5 + ((_filterfeeding / _symmetry) / (10 * _geneticCode.getNGenes())));
-				}
-				for (q=_segments-1; q>=0; q--) {
-			         if (_segColor[q].equals(Utils.ColorPLANKTON)) {
-			             _mphoto[q] = filterfactor * Utils.PLANKTON_ENERGY_CONSUMPTION * photomultiplier * _geneticCode.getGene(q%_geneticCode.getNGenes()).getLength();
-					}
-				}
-			} else {
-				if ((_isinfectious) || (_plagueversion > 0) || (_isakiller) || (_isprotective)) {
-					int q;
-					for (q=_segments-1; q>=0; q--) {
-				         if (_segColor[q].equals(Utils.ColorPLANKTON)) {
-				             _mphoto[q] = 0.8125 * Utils.PLANKTON_ENERGY_CONSUMPTION * photomultiplier * _geneticCode.getGene(q%_geneticCode.getNGenes()).getLength();
-						}
-					}
-				} else {
-					if ((_isenhanced) && (!_isafungus) && (!_iscoral) && (_blackversion >= 0)) {
-						_isplankton = 2;
-					}
-				}
-			}
-			_isaplant =true;
-			_filterfeeding = 0;
 		}
 		// Give non green methanotrophs the ability of jade during virus hatching, then make them count as plants and lower effectivity for mixed organisms
 		if (_methanotrophy > 0) {
@@ -2103,34 +1960,17 @@ public class Organism extends Rectangle {
 				if (_jadefactor == 0) {
 					_jadefactor = -1;
 				}
-			}
-			if ((_isaplant) || (_isplankton > 0)) {
+			} else {
 				if (_age == 0) {
 					int p;
-					double methanefactor = 0;
-					if (_geneticCode.getNGenes() > 1) {
-						methanefactor = (0.5 + ((_methanotrophy / _symmetry) / (10 * (_geneticCode.getNGenes() - 1))));
-					} else {
-						methanefactor = (0.5 + ((_methanotrophy / _symmetry) / (10 * _geneticCode.getNGenes())));
-					}
 					for (p=_segments-1; p>=0; p--) {
 			            if (_segColor[p].equals(Utils.ColorPURPLE)) {
-			            	_mphoto[p] = methanefactor * Utils.PURPLE_ENERGY_CONSUMPTION * photomultiplier * _geneticCode.getGene(p%_geneticCode.getNGenes()).getLength();
+			            	_mphoto[p] = 0.55 * Utils.PURPLE_ENERGY_CONSUMPTION * photomultiplier * _geneticCode.getGene(p%_geneticCode.getNGenes()).getLength();
 						}
 					}
 				}
 			}
 			_isaplant =true;
-		}
-		// Can this organism dodge?
-		if ((_canreact) || (isspin)) {
-			if ((!_isaconsumer) && (!_isafungus) && (_isplankton == 0) && (!_isakiller) && (_blackversion >= 0)
-				&& (((!_isinfectious) && (!_iscoral) && (_plagueversion == 0) && (!_isprotective)) || ((!_isaplant) && ((_geneticCode.getPassive()) || (_spin > 0))))) {
-				_candodge =true;
-			} else {
-				_candodge =false;
-				_dodge =false;
-			}
 		}
 		if ((_transfersenergy) && (!_isaplant)) {
 			if ((!_isaconsumer) && (!_isafungus)) {
@@ -2141,14 +1981,6 @@ public class Organism extends Rectangle {
 				if (_lengthfriend > 0) {
 					_colonyPhotosynthesis = Utils.SYMBIONT_ENERGY_CONSUMPTION * (_lengthfriend + 9);
 					_lengthfriend = -_lengthfriend;
-				}
-				if ((!_isinfectious) && (_age == 0)) {
-					int c;
-					for (c=_segments-1; c>=0; c--) {
-			            if (_segColor[c].equals(Utils.ColorROSE)) {
-			            	_reproduceEnergy -= 3;
-						}
-					}
 				}
 			} else {
 				_colonyPhotosynthesis = 0;
@@ -2226,15 +2058,9 @@ public class Organism extends Rectangle {
 			if (_isaplant) {
 			    _earlyReproduceEnergy = _reproduceEnergy - _earlyReproduceEnergy;
 			    if ((_isonlyc4 == 2) && (_isblond) && (!_isenhanced)) {
-			    	if (_sporeversion < 0) {
-			    		if (_earlyReproduceEnergy < 40) {
-							_earlyReproduceEnergy = 40;
-						}
-			    	} else {
-			    		if (_earlyReproduceEnergy < 30) {
-							_earlyReproduceEnergy = 30;
-						}
-			    	}
+			    	if (_earlyReproduceEnergy < 30) {
+						_earlyReproduceEnergy = 30;
+					}
 			    } else {
 			    	if (_earlyReproduceEnergy < 40) {
 						_earlyReproduceEnergy = 40;
@@ -2243,47 +2069,29 @@ public class Organism extends Rectangle {
 			} else {
 				if ((_isaconsumer) || (_isafungus)) {
 					_earlyReproduceEnergy = _reproduceEnergy - _earlyReproduceEnergy;
-					if (_sporeversion < 0) {
-			    		if (_earlyReproduceEnergy < 40) {
-							_earlyReproduceEnergy = 40;
-						}
-			    	} else {
-			    		if (_earlyReproduceEnergy < 21) {
-							_earlyReproduceEnergy = 21;
-						}
-			    	}
+					if (_earlyReproduceEnergy < 21) {
+						_earlyReproduceEnergy = 21;
+					}
 				} else {
 					if ((_transfersenergy) && (_isinfectious) && (_isblond)) {
 						_earlyReproduceEnergy = _reproduceEnergy - _earlyReproduceEnergy;
-						if (_sporeversion < 0) {
-				    		if (_earlyReproduceEnergy < 40) {
-								_earlyReproduceEnergy = 40;
-							}
-				    	} else {
-				    		if (_earlyReproduceEnergy < 21) {
-								_earlyReproduceEnergy = 21;
-							}
-				    	}
+						if (_earlyReproduceEnergy < 21) {
+							_earlyReproduceEnergy = 21;
+						}
 						if (_age == 0) {
 							_timeToReproduce = _timeToReproduceMax;
 						}
 					} else {
-						if (_sporeversion == 6) {
+						if ((_sporeversion < 0) || (_sporeversion == 6)) {
 							_earlyReproduceEnergy = _reproduceEnergy - _earlyReproduceEnergy;
 							if (_earlyReproduceEnergy < 21) {
 								_earlyReproduceEnergy = 21;
 							}
 						} else {
 							_earlyReproduceEnergy = _reproduceEnergy - _earlyReproduceEnergy;
-							if (_sporeversion < 0) {
-					    		if (_earlyReproduceEnergy < 40) {
-									_earlyReproduceEnergy = 40;
-								}
-					    	} else {
-					    		if (_earlyReproduceEnergy < 14) {
-									_earlyReproduceEnergy = 14;
-								}
-					    	}
+							if (_earlyReproduceEnergy < 14) {
+								_earlyReproduceEnergy = 14;
+							}
 						}
 					}
 					if ((_createlavender > 0) && (_isinfectious) && (_isblond) && (_age == 0)) {
@@ -2326,7 +2134,9 @@ public class Organism extends Rectangle {
 		_geneticCode._generation = 1;
 		_growthRatio = 16;
 		// initial energy
-		_energy = _world.convertCO2ToO2(Utils.INITIAL_ENERGY);
+		_energy = Math.min(Utils.INITIAL_ENERGY,_world._CO2);
+		_world.decreaseCO2(_energy);
+		_world.addO2(_energy);
 		// initialize
 		create();
 		symmetric();
@@ -2595,7 +2405,7 @@ public class Organism extends Rectangle {
     		}
             if (inheritReproduceEnergy <= 4) {
             	// Virus created by this noninfectious plague organism, or child of an organism affected by modified fallow will die at birth
-            	_max_age = -1;
+            	_age = ((_max_age + 1) * 512);
             	for (int i=0; i<_segments; i++) {
         			if (_segColor[i].equals(Utils.ColorEYE)) {
         				_segColor[i] = Utils.ColorEYE;
@@ -2685,7 +2495,7 @@ public class Organism extends Rectangle {
     	                    		}
     							} else {
     								if (parent._geneticCode.getDisperseChildren()) {
-    	    							if (_canmove <= 1) {
+    	    							if (!_canmove) {
     	    								dx = 3 * dx;
     	        							dy = 3 * dy;
     	    							} else {
@@ -2701,7 +2511,7 @@ public class Organism extends Rectangle {
     							}
     						} else {
     							if (parent._geneticCode.getDisperseChildren()) {
-	    							if (_canmove <= 1) {
+	    							if (!_canmove) {
 	    								dx = 3 * dx;
 	        							dy = 3 * dy;
 	    							} else {
@@ -2814,7 +2624,7 @@ public class Organism extends Rectangle {
 			                   				_methanotrophy = (60 * _mass)/Utils.GREEN_OBTAINED_ENERGY_DIVISOR;
 										}
 									} else {
-										if (_canmove == 2) {
+										if (_canmove) {
 											if (_jadefactor > 0) {
 												_jadefactor = 1;
 											}
@@ -2859,7 +2669,7 @@ public class Organism extends Rectangle {
 			                   				_methanotrophy = (120 * _mass)/Utils.GREEN_OBTAINED_ENERGY_DIVISOR;
 										}
 									} else {
-										if ((_blackversion < 0) || (_isplankton > 0)) {
+										if (_blackversion < 0) {
 											_islime = false;
 				                   			for (int i=0; i<_segments; i++) {
 				                   				_segColor[i] = Utils.ColorWINTER;
@@ -2872,7 +2682,7 @@ public class Organism extends Rectangle {
 				                   			    _photosynthesis = ((10 * _mass) + (19.6 * (double)_symmetry))/Utils.GREEN_OBTAINED_ENERGY_DIVISOR;
 											}
 										} else {
-											if ((_isakiller) || (_fallowversion > 0) || (_plagueversion > 0)) {
+											if ((_isakiller) || (_fallowversion > 0)) {
 												_islime = false;
 					                   			for (int i=0; i<_segments; i++) {
 					                   				_segColor[i] = Utils.ColorSUMMER;
@@ -2895,7 +2705,7 @@ public class Organism extends Rectangle {
 						                    		}
 						                   			if (largeenough) {
 						                   			    _photosynthesis = ((14 * _mass) + (19.6 * (double)_symmetry))/Utils.GREEN_OBTAINED_ENERGY_DIVISOR;
-						                   			    _leafphoto = ((19.5 * _mass) + (19.6 * (double)_symmetry))/Utils.GREEN_OBTAINED_ENERGY_DIVISOR;
+						                   			    _leafphoto = ((20 * _mass) + (19.6 * (double)_symmetry))/Utils.GREEN_OBTAINED_ENERGY_DIVISOR;
 													}
 												} else {
 													if (_forestphoto > 0) {
@@ -3060,7 +2870,7 @@ public class Organism extends Rectangle {
 				int subcladecounter = 0;
 				if (Utils.CLADE_COMPLEXITY >= 0) {
 					for(char c : _geneticCode._cladeID.toCharArray()) {
-				        if( c == '|' || c == '+' || c == '-' || c == '<' || c == '>' || c == '=' || c == '#') {
+				        if( c == '|' || c == '+' || c == '-' || c == '<' || c == '>') {
 				            ++subcladecounter;
 				        }
 				    }
@@ -3077,12 +2887,6 @@ public class Organism extends Rectangle {
 				    		_geneticCode._cladeID += ">" + Integer.toHexString(_world.getNewCladePart());
 				    	} else if (_symmetry < inheritGeneticCode.getSymmetry()) {
 				    		_geneticCode._cladeID += "<" + Integer.toHexString(_world.getNewCladePart());
-				    	} else if ((_geneticCode.getMirror() != inheritGeneticCode.getMirror()) && (_symmetry > 1)) {
-				    		if (_geneticCode.getMirror() == 0) {
-					    		_geneticCode._cladeID += "#" + Integer.toHexString(_world.getNewCladePart());
-					    	} else {
-					    		_geneticCode._cladeID += "=" + Integer.toHexString(_world.getNewCladePart());
-					    	}
 				    	}
 			    	} else {
 			    		if (_geneticCode.getNGenes() > inheritGeneticCode.getNGenes()) {
@@ -3093,12 +2897,6 @@ public class Organism extends Rectangle {
 				    		_geneticCode._cladeID += ">";
 				    	} else if (_symmetry < inheritGeneticCode.getSymmetry()) {
 				    		_geneticCode._cladeID += "<";
-				    	} else if ((_geneticCode.getMirror() != inheritGeneticCode.getMirror()) && (_symmetry > 1)) {
-				    		if (_geneticCode.getMirror() == 0) {
-					    		_geneticCode._cladeID += "#";
-					    	} else {
-					    		_geneticCode._cladeID += "=";
-					    	}
 				    	}
 			    		if (_geneticCode.getUpdateClade() == 1) {
 			    			_geneticCode._cladeID += "|" + Integer.toHexString(_world.getNewCladePart());
@@ -3341,7 +3139,7 @@ public class Organism extends Rectangle {
 			                   				_methanotrophy = (60 * _mass)/Utils.GREEN_OBTAINED_ENERGY_DIVISOR;
 										}
 									} else {
-										if (_canmove == 2) {
+										if (_canmove) {
 											if (_jadefactor > 0) {
 												_jadefactor = 1;
 											}
@@ -3386,7 +3184,7 @@ public class Organism extends Rectangle {
 			                   				_methanotrophy = (120 * _mass)/Utils.GREEN_OBTAINED_ENERGY_DIVISOR;
 										}
 									} else {
-										if ((_blackversion < 0) || (_isplankton > 0)) {
+										if (_blackversion < 0) {
 											_islime = false;
 				                   			for (int i=0; i<_segments; i++) {
 				                   				_segColor[i] = Utils.ColorWINTER;
@@ -3399,7 +3197,7 @@ public class Organism extends Rectangle {
 				                   			    _photosynthesis = ((10 * _mass) + (19.6 * (double)_symmetry))/Utils.GREEN_OBTAINED_ENERGY_DIVISOR;
 											}
 										} else {
-											if ((_isakiller) || (_fallowversion > 0) || (_plagueversion > 0)) {
+											if ((_isakiller) || (_fallowversion > 0)) {
 												_islime = false;
 					                   			for (int i=0; i<_segments; i++) {
 					                   				_segColor[i] = Utils.ColorSUMMER;
@@ -3422,7 +3220,7 @@ public class Organism extends Rectangle {
 						                    		}
 						                   			if (largeenough) {
 						                   			    _photosynthesis = ((14 * _mass) + (19.6 * (double)_symmetry))/Utils.GREEN_OBTAINED_ENERGY_DIVISOR;
-						                   			    _leafphoto = ((19.5 * _mass) + (19.6 * (double)_symmetry))/Utils.GREEN_OBTAINED_ENERGY_DIVISOR;
+						                   			    _leafphoto = ((20 * _mass) + (19.6 * (double)_symmetry))/Utils.GREEN_OBTAINED_ENERGY_DIVISOR;
 													}
 												} else {
 													if (_forestphoto > 0) {
@@ -3585,7 +3383,7 @@ public class Organism extends Rectangle {
 					int subcladecounter = 0;
 					if (Utils.CLADE_COMPLEXITY >= 0) {
 						for(char c : _geneticCode._cladeID.toCharArray()) {
-					        if( c == '|' || c == '+' || c == '-' || c == '<' || c == '>' || c == '=' || c == '#') {
+					        if( c == '|' || c == '+' || c == '-' || c == '<' || c == '>') {
 					            ++subcladecounter;
 					        }
 					    }
@@ -3602,12 +3400,6 @@ public class Organism extends Rectangle {
 					    		_geneticCode._cladeID += ">" + Integer.toHexString(_world.getNewCladePart());
 					    	} else if (_symmetry < inheritGeneticCode.getSymmetry()) {
 					    		_geneticCode._cladeID += "<" + Integer.toHexString(_world.getNewCladePart());
-					    	} else if ((_geneticCode.getMirror() != inheritGeneticCode.getMirror()) && (_symmetry > 1)) {
-					    		if (_geneticCode.getMirror() == 0) {
-						    		_geneticCode._cladeID += "#" + Integer.toHexString(_world.getNewCladePart());
-						    	} else {
-						    		_geneticCode._cladeID += "=" + Integer.toHexString(_world.getNewCladePart());
-						    	}
 					    	}
 				    	} else {
 				    		if (_geneticCode.getNGenes() > inheritGeneticCode.getNGenes()) {
@@ -3618,12 +3410,6 @@ public class Organism extends Rectangle {
 					    		_geneticCode._cladeID += ">";
 					    	} else if (_symmetry < inheritGeneticCode.getSymmetry()) {
 					    		_geneticCode._cladeID += "<";
-					    	} else if ((_geneticCode.getMirror() != inheritGeneticCode.getMirror()) && (_symmetry > 1)) {
-					    		if (_geneticCode.getMirror() == 0) {
-						    		_geneticCode._cladeID += "#";
-						    	} else {
-						    		_geneticCode._cladeID += "=";
-						    	}
 					    	}
 				    		if (_geneticCode.getUpdateClade() == 1) {
 				    			_geneticCode._cladeID += "|" + Integer.toHexString(_world.getNewCladePart());
@@ -3683,7 +3469,9 @@ public class Organism extends Rectangle {
 						_geneticCode._cladeID = Integer.toString(_ID);
 					}
 				}
-				_energy = _world.convertCO2ToO2(Utils.INITIAL_ENERGY);
+				_energy = Math.min(Utils.INITIAL_ENERGY,_world._CO2);
+				_world.decreaseCO2(_energy);
+				_world.addO2(_energy);
 				// Maximum age that an organism can reach
 				_max_age = Utils.MAX_AGE + (_segments/Utils.AGE_DIVISOR);
 				// Calculates the energy required to reproduce this genetic code.
@@ -3727,7 +3515,6 @@ public class Organism extends Rectangle {
 		int left=0, right=0, top=0, bottom=0;
 		int centerX, centerY;
 		double cx, cy;
-		Vector2D v = new Vector2D();
 		if (_updateEffects == 0) {
 			_updateEffects = 1;
 		}
@@ -3746,7 +3533,11 @@ public class Organism extends Rectangle {
 						} else {
 							v.setModulus(1.5 * (_geneticCode.getGene(j).getLength()*Utils.scale[_growthRatio-1]));
 						}
-						_m[segment] = 0.026 * v.getModulus();
+						if ((_isaconsumer) || (_isafungus) || (_isinfectious)) {
+							_m[segment] = 0.026 * v.getModulus();
+						} else {
+							_m[segment] = 0.025 * v.getModulus();
+						}
 					} else {
 						v.setModulus(_geneticCode.getGene(j).getLength()*Utils.scale[_growthRatio-1]);
 						_m[segment] = v.getModulus();
@@ -4220,6 +4011,11 @@ public class Organism extends Rectangle {
 	 * its rotation. It also calculates the bounding rectangle of the organism.
 	 * This method must be called from outside this class only when doing
 	 * manual drawing.
+	 *
+	 * @param force  To avoid calculations, segments position are only calculated
+	 * if the organism's rotation has changed in the last frame. If it is necessary
+	 * to calculate them even when the rotation hasn't changed, assign true to this
+	 * parameter.
 	 */
 	public void calculateBounds() {
 		double left=java.lang.Double.MAX_VALUE, right=java.lang.Double.MIN_VALUE,
@@ -4445,7 +4241,7 @@ public class Organism extends Rectangle {
 				if (_isblond) {
 				    if (useblondcosts) {
 					    useblondcosts =false;
-						useDetritus(Math.min(_energy, Utils.BLOND_ENERGY_CONSUMPTION));
+						useEnergy(Math.min(_energy, Utils.BLOND_ENERGY_CONSUMPTION));
 					}
 				}
 				_savedGeneticCode = null;
@@ -4517,9 +4313,9 @@ public class Organism extends Rectangle {
 				    if (useblondcosts) {
 					    useblondcosts =false;
 					    if ((_isonlyc4 == 2) || (_reproducelate > 0)) {
-					    	useDetritus(Math.min(_energy, Utils.BLOND_ENERGY_CONSUMPTION));
+					    	useEnergy(Math.min(_energy, Utils.BLOND_ENERGY_CONSUMPTION));
 					    } else {
-					    	useDetritus(Math.min(_energy, Utils.BLOND_ENERGY_CONSUMPTION * (_reproduceEnergy - _earlyReproduceEnergy)));
+					    	useEnergy(Math.min(_energy, Utils.BLOND_ENERGY_CONSUMPTION * (_reproduceEnergy - _earlyReproduceEnergy)));
 					    }
 					}
 				}
@@ -4544,7 +4340,7 @@ public class Organism extends Rectangle {
 			_nTotalChildren++;
 			_world.addOrganism(newOrg,this);
 			if (_isblond) {
-				useDetritus(Math.min(_energy, Utils.BLOND_ENERGY_CONSUMPTION));
+				useEnergy(Math.min(_energy, Utils.BLOND_ENERGY_CONSUMPTION));
 			}
 			if ((_sporeversion <= 0) || (_sporeversion == 3) || (_sporeversion == 4)) {
 				_timeToReproduce = 0;
@@ -4836,7 +4632,7 @@ public class Organism extends Rectangle {
 			}
 		}
 		// Movement and collisions
-		if (dx!=0 || dy!=0 || dtheta!=0 || hasGrown!=0 || (_haseyes && _canmove == 2)) {
+		if (dx!=0 || dy!=0 || dtheta!=0 || hasGrown!=0 || (_haseyes && _canmove)) {
 			boolean collision = false;
 			// Movement
 			double dxbak=dx, dybak=dy, dthetabak=dtheta;
@@ -4872,27 +4668,6 @@ public class Organism extends Rectangle {
 				}
 				calculateBounds();
 			} else {
-				if (_filterfeeding > 0) {
-					if ((!_haseyes) || (dx == dxbak)) {
-						if (_spin > 0) {
-							if (_world._detritus < 450) {
-								if (Utils.random.nextInt(450) < _world._detritus) {
-									_energy += _world.filterfeeding(((0.9375 * (Math.abs(dx) + Math.abs(dy))) + (22.75 * Math.abs(dtheta))) * _filterfeeding);
-								}
-							} else {
-								_energy += _world.filterfeeding(((0.9375 * (Math.abs(dx) + Math.abs(dy))) + (22.75 * Math.abs(dtheta))) * _filterfeeding);
-							}
-						} else {
-							if ((_symmetry == 1) && (_world._detritus < 450)) {
-								if (Utils.random.nextInt(450) < _world._detritus) {
-									_energy += _world.filterfeeding((Math.abs(dx) + Math.abs(dy)) * _filterfeeding);
-								}
-							} else {
-								_energy += _world.filterfeeding((Math.abs(dx) + Math.abs(dy)) * _filterfeeding);
-							}
-						}
-					}
-				}
 				if (hasMoved == false) {
 					hasMoved = true;
 				}
@@ -5113,6 +4888,13 @@ public class Organism extends Rectangle {
 						}
 					}
 				}
+				if (_spin > 0) {
+					if (_clockwise) {
+						dtheta=Utils.between(dtheta+(_spin*Utils.springscale[_growthRatio-1])*Math.PI/_I, -Utils.MAX_ROT, Utils.MAX_ROT);
+					} else {
+					    dtheta=Utils.between(dtheta-(_spin*Utils.springscale[_growthRatio-1])*Math.PI/_I, -Utils.MAX_ROT, Utils.MAX_ROT);
+					}
+				}
 			} else {
 				if (_updateEffects > 0) {
 					if (_useextraeffects) {
@@ -5137,14 +4919,6 @@ public class Organism extends Rectangle {
 							segmentsFrameEffects();
 						}
 					}
-				}
-			}
-			// Rotate around with Spin and Spring
-			if (_spin > 0) {
-				if (_clockwise) {
-					dtheta=Utils.between(dtheta+(_spin*Utils.springscale[_growthRatio-1])*Math.PI/_I, -Utils.MAX_ROT, Utils.MAX_ROT);
-				} else {
-				    dtheta=Utils.between(dtheta-(_spin*Utils.springscale[_growthRatio-1])*Math.PI/_I, -Utils.MAX_ROT, Utils.MAX_ROT);
 				}
 			}
 			// Reset dodging
@@ -5283,24 +5057,6 @@ public class Organism extends Rectangle {
 		return true;
 	}
 	/**
-	 * Feeding (not pink) and draining creates detritus,
-	 * also created when organisms lose energy above reproduction energy
-	 *
-	 * @param q  The quantity of energy to spend.
-	 * @return  true if the organism has enough energy and there is
-	 * enough oxygen in the atmosphere, false otherwise.
-	 */
-	public boolean useDetritus(double q) {
-		if (_energy < q) {
-			return false;
-		}
-		double detritusproduction = _world.detritusproduction(q);
-		_energy -= detritusproduction;
-		if (detritusproduction < q)
-			return false;
-		return true;
-	}
-	/**
 	 * Realize the respiration process to maintain its structure.
 	 * Aging is applied here too.
 	 */
@@ -5323,13 +5079,13 @@ public class Organism extends Rectangle {
 			// Check that it don't exceed the maximum chemical energy
 			if (_energy > _reproduceEnergy) {
 				if (_energy > 2*_reproduceEnergy) {
-					useDetritus((int)_energy - 2*_reproduceEnergy);
+					useEnergy((int)_energy - 2*_reproduceEnergy);
 					if ((_reproducelate > 0) && (!_isinfectious) && (_timeToReproduce > 0)) {
 						_timeToReproduce = 0;
 					}
 				} else {
 					if ((_reproducelate == 0) || (_isinfectious)) {
-						useDetritus(((int)_energy - _reproduceEnergy)*0.005);
+						useEnergy(((int)_energy - _reproduceEnergy)*0.005);
 					} else {
 						if ((_timeToReproduce > 0) && (_energy > 2*_reproduceEnergy-_reproducelate)) {
 							_timeToReproduce = 0;
@@ -5471,7 +5227,6 @@ public class Organism extends Rectangle {
 											}
 											_photosynthesis = 0;
 											_methanotrophy = 0;
-											_filterfeeding = 0;
 											_leafphoto = 0;
 											_forestphoto = 0;
 											_framesColor = 0;
@@ -5764,7 +5519,6 @@ public class Organism extends Rectangle {
 			break;
 		case ORANGE:
 		case MAROON:
-		case CRIMSON:
 			if (_geneticCode.getAdaptspore() % 10 == 3) {
 				hatch();
 			}
@@ -5910,7 +5664,7 @@ public class Organism extends Rectangle {
 			} else {
 				_segColor[seg] = Utils.ColorBARK;
 			}
-		} else if (_blackversion <= 9) {
+		} else if (_blackversion <= 8) {
 			if (_blackversion == 3) {
 				_segColor[seg] = Color.RED;
 			} else if (_blackversion == 4) {
@@ -5920,46 +5674,44 @@ public class Organism extends Rectangle {
 			} else if (_blackversion == 6) {
 				_segColor[seg] = Utils.ColorMAROON;
 			} else if (_blackversion == 7) {
-				_segColor[seg] = Utils.ColorCRIMSON;
-			} else if (_blackversion == 8) {
 				_segColor[seg] = Color.PINK;
 			} else {
 				_segColor[seg] = Utils.ColorCREAM;
 			}
-		} else if (_blackversion <= 13) {
-			if (_blackversion == 10) {
+		} else if (_blackversion <= 12) {
+			if (_blackversion == 9) {
 				_segColor[seg] = Color.LIGHT_GRAY;
-			} else if (_blackversion == 11) {
+			} else if (_blackversion == 10) {
 				_segColor[seg] = Utils.ColorSPIKEPOINT;
-			} else if (_blackversion == 12) {
+			} else if (_blackversion == 11) {
 				_segColor[seg] = Utils.ColorLILAC;
 			} else {
 				_segColor[seg] = Color.GRAY;
 			}
-		} else if (_blackversion <= 19) {
-			if (_blackversion == 14) {
+		} else if (_blackversion <= 18) {
+			if (_blackversion == 13) {
 				_segColor[seg] = Utils.ColorVIOLET;
-			} else if (_blackversion == 15) {
+			} else if (_blackversion == 14) {
 				_segColor[seg] = Utils.ColorOLIVE;
-			} else if (_blackversion == 16) {
+			} else if (_blackversion == 15) {
 				_segColor[seg] = Utils.ColorSKY;
-			} else if (_blackversion == 17) {
+			} else if (_blackversion == 16) {
 				_segColor[seg] = Color.BLUE;
-			} else if (_blackversion == 18) {
+			} else if (_blackversion == 17) {
 				_segColor[seg] = Utils.ColorOCHRE;
 			} else {
 				_segColor[seg] = Utils.ColorFALLOW;
 			}
 		} else {
-			if (_blackversion == 20) {
+			if (_blackversion == 19) {
 				_segColor[seg] = Color.WHITE;
-			} else if (_blackversion == 21) {
+			} else if (_blackversion == 20) {
 				_segColor[seg] = Utils.ColorPLAGUE;
-			} else if (_blackversion == 22) {
+			} else if (_blackversion == 21) {
 				_segColor[seg] = Utils.ColorCORAL;
-			} else if (_blackversion == 23) {
+			} else if (_blackversion == 22) {
 				_segColor[seg] = Utils.ColorMINT;
-			} else if (_blackversion == 24) {
+			} else if (_blackversion == 23) {
 				_segColor[seg] = Color.MAGENTA;
 			} else {
 				_segColor[seg] = Utils.ColorDARK;
@@ -5974,63 +5726,61 @@ public class Organism extends Rectangle {
 	private final void mimicColor() {
 		if (_blackversion <= 2) {
 			if (_blackversion == 1) {
-				setColor(Color.GREEN);
+				setColorfourFrames(Color.GREEN);
 			} else {
-				setColor(Utils.ColorBARK);
+				setColorfourFrames(Utils.ColorBARK);
 			}
-		} else if (_blackversion <= 9) {
+		} else if (_blackversion <= 8) {
 			if (_blackversion == 3) {
-				setColor(Color.RED);
+				setColorfourFrames(Color.RED);
 			} else if (_blackversion == 4) {
-				setColor(Utils.ColorFIRE);
+				setColorfourFrames(Utils.ColorFIRE);
 			} else if (_blackversion == 5) {
-				setColor(Color.ORANGE);
+				setColorfourFrames(Color.ORANGE);
 			} else if (_blackversion == 6) {
-				setColor(Utils.ColorMAROON);
+				setColorfourFrames(Utils.ColorMAROON);
 			} else if (_blackversion == 7) {
-				setColor(Utils.ColorCRIMSON);
-			} else if (_blackversion == 8) {
-				setColor(Color.PINK);
+				setColorfourFrames(Color.PINK);
 			} else {
-				setColor(Utils.ColorCREAM);
+				setColorfourFrames(Utils.ColorCREAM);
 			}
-		} else if (_blackversion <= 13) {
-			if (_blackversion == 10) {
-				setColor(Color.LIGHT_GRAY);
+		} else if (_blackversion <= 12) {
+			if (_blackversion == 9) {
+				setColorfourFrames(Color.LIGHT_GRAY);
+			} else if (_blackversion == 10) {
+				setColorfourFrames(Utils.ColorSPIKEPOINT);
 			} else if (_blackversion == 11) {
-				setColor(Utils.ColorSPIKEPOINT);
-			} else if (_blackversion == 12) {
-				setColor(Utils.ColorLILAC);
+				setColorfourFrames(Utils.ColorLILAC);
 			} else {
-				setColor(Color.GRAY);
+				setColorfourFrames(Color.GRAY);
 			}
-		} else if (_blackversion <= 19) {
-			if (_blackversion == 14) {
-				setColor(Utils.ColorVIOLET);
+		} else if (_blackversion <= 18) {
+			if (_blackversion == 13) {
+				setColorfourFrames(Utils.ColorVIOLET);
+			} else if (_blackversion == 14) {
+				setColorfourFrames(Utils.ColorOLIVE);
 			} else if (_blackversion == 15) {
-				setColor(Utils.ColorOLIVE);
+				setColorfourFrames(Utils.ColorSKY);
 			} else if (_blackversion == 16) {
-				setColor(Utils.ColorSKY);
+				setColorfourFrames(Color.BLUE);
 			} else if (_blackversion == 17) {
-				setColor(Color.BLUE);
-			} else if (_blackversion == 18) {
-				setColor(Utils.ColorOCHRE);
+				setColorfourFrames(Utils.ColorOCHRE);
 			} else {
-				setColor(Utils.ColorFALLOW);
+				setColorfourFrames(Utils.ColorFALLOW);
 			}
 		} else {
-			if (_blackversion == 20) {
-				setColor(Color.WHITE);
+			if (_blackversion == 19) {
+				setColorfourFrames(Color.WHITE);
+			} else if (_blackversion == 20) {
+				setColorfourFrames(Utils.ColorPLAGUE);
 			} else if (_blackversion == 21) {
-				setColor(Utils.ColorPLAGUE);
+				setColorfourFrames(Utils.ColorCORAL);
 			} else if (_blackversion == 22) {
-				setColor(Utils.ColorCORAL);
+				setColorfourFrames(Utils.ColorMINT);
 			} else if (_blackversion == 23) {
-				setColor(Utils.ColorMINT);
-			} else if (_blackversion == 24) {
-				setColor(Color.MAGENTA);
+				setColorfourFrames(Color.MAGENTA);
 			} else {
-				setColor(Utils.ColorINDIGO);
+				setColorfourFrames(Utils.ColorDARK);
 			}
 		}
 	}
@@ -6048,12 +5798,11 @@ public class Organism extends Rectangle {
 	    _usefriendeffects = 0;
 	    _photosynthesis = 0;
 	    _methanotrophy = 0;
-	    _filterfeeding = 0;
 	    _sporetime = 0;
 	    _sporeversion = 0;
 	    _fallowinhibition = 0;
 	    _useframemovement = false;
-	    _canmove = 0;
+	    _canmove = false;
 	    _canreact = false;
 		hasMoved = true;
 		_infectedGeneticCode = null;
@@ -6088,24 +5837,6 @@ public class Organism extends Rectangle {
 			}
 		}
 		grayOrganism.setColor(Color.GRAY);
-	}
-	/**
-	 * Magenta segments are getting tricked into defending vs "Gray" by Black version 5 and 6
-	 *
-	 * @param blackOrganism  The organism that tricked
-	 * all magenta segments of this organism
-	 */
-	public void tricked(Organism blackOrganism) {
-		_healing = 0;
-		for (int i=0; i<_segments; i++) {
-			if (_segColor[i].equals(Color.MAGENTA)) {
-                _segColor[i] = Utils.ColorDARKFIRE;
-                _mphoto[i] = -20;
-                _useextraeffects = true;
-				_isinjured =true;
-			}
-		}
-		blackOrganism.setColor(Utils.ColorDARK);
 	}
 	/**
 	 * Reproductive segments are getting destroyed by a fallow segment
@@ -6165,9 +5896,8 @@ public class Organism extends Rectangle {
 	 */
 	public void frozen(Organism freezingOrganism) {
 		boolean freeze =false;
-		boolean isspin =false;
 		_allfrozen =true;
-		_canmove = 0;
+		_canmove =false;
 		_canreact =false;
 		_useframemovement =false;
 		if (_skyversion > 0) {
@@ -6176,11 +5906,12 @@ public class Organism extends Rectangle {
 		if (_jadefactor > 0) {
 			_jadefactor = 1;
 		}
+		_spin = 0;
 		for (int i=0; i<_segments; i++) {
 			switch (getTypeColor(_segColor[i])) {
 			case SKY:
 			case DEEPSKY:
-				if (freezingOrganism.useDetritus(Utils.SKY_ENERGY_CONSUMPTION)) {
+				if (freezingOrganism.useEnergy(Utils.SKY_ENERGY_CONSUMPTION)) {
 					_segColor[i] = Utils.ColorLIGHT_BLUE;
 					_mphoto[i] = -20;
 					freeze =true;
@@ -6200,7 +5931,7 @@ public class Organism extends Rectangle {
 				}
 				break;
 			case TEAL:
-				if (freezingOrganism.useDetritus(Utils.SKY_ENERGY_CONSUMPTION)) {
+				if (freezingOrganism.useEnergy(Utils.SKY_ENERGY_CONSUMPTION)) {
 					_segColor[i] = Utils.ColorICE;
 					_mphoto[i] = -20;
 					if (_geneticCode.getPassive()) {
@@ -6211,7 +5942,7 @@ public class Organism extends Rectangle {
 					_isfrozen =true;
 				} else {
 					_allfrozen =false;
-					_canmove = 2;
+					_canmove =true;
 					_canreact =true;
 					if (!_geneticCode.getPassive()) {
 						_useframemovement =true;
@@ -6219,7 +5950,7 @@ public class Organism extends Rectangle {
 				}
 				break;
 			case CYAN:
-				if (freezingOrganism.useDetritus(Utils.SKY_ENERGY_CONSUMPTION)) {
+				if (freezingOrganism.useEnergy(Utils.SKY_ENERGY_CONSUMPTION)) {
 					_segColor[i] = Utils.ColorICE;
 					_mphoto[i] = -20;
 					freeze =true;
@@ -6227,15 +5958,12 @@ public class Organism extends Rectangle {
 					_isfrozen =true;
 				} else {
 					_allfrozen =false;
-					_canmove = 2;
+					_canmove =true;
 					_useframemovement =true;
 				}
 				break;
-			case SPIN:
-				isspin =true;
-				break;
 			case GREENBROWN:
-				if (freezingOrganism.useDetritus(Utils.SKY_ENERGY_CONSUMPTION)) {
+				if (freezingOrganism.useEnergy(Utils.SKY_ENERGY_CONSUMPTION)) {
 					_segColor[i] = Utils.ColorICE;
 					freeze =true;
 					_isinjured =true;
@@ -6245,7 +5973,7 @@ public class Organism extends Rectangle {
 				}
 				break;
 			case WINTER:
-				if (freezingOrganism.useDetritus(Utils.SKY_ENERGY_CONSUMPTION)) {
+				if (freezingOrganism.useEnergy(Utils.SKY_ENERGY_CONSUMPTION)) {
 					_segColor[i] = Utils.ColorICE;
 					freeze =true;
 					_isinjuredplant =true;
@@ -6257,7 +5985,7 @@ public class Organism extends Rectangle {
 				break;
 			case JADE:
 			case DARKJADE:
-				if (freezingOrganism.useDetritus(Utils.SKY_ENERGY_CONSUMPTION)) {
+				if (freezingOrganism.useEnergy(Utils.SKY_ENERGY_CONSUMPTION)) {
 					_segColor[i] = Utils.ColorICE;
 					freeze =true;
 					_isinjuredplant =true;
@@ -6270,21 +5998,20 @@ public class Organism extends Rectangle {
 				}
 				break;
 			case SPRING:
-				if (freezingOrganism.useDetritus(Utils.SKY_ENERGY_CONSUMPTION)) {
+				if (freezingOrganism.useEnergy(Utils.SKY_ENERGY_CONSUMPTION)) {
 					_segColor[i] = Utils.ColorICE;
 					freeze =true;
 					_isinjuredplant =true;
 					_isinjured =true;
 					_isfrozen =true;
 					_updateEffects = 2;
-					_spin -= (int)(10 * _geneticCode.getGene(i%_geneticCode.getNGenes()).getLength());
 				} else {
 					_allfrozen =false;
 					_spin += (int)(10 * _geneticCode.getGene(i%_geneticCode.getNGenes()).getLength());
 				}
 				break;
 			case DARKGREEN:
-				if (freezingOrganism.useDetritus(Utils.SKY_ENERGY_CONSUMPTION)) {
+				if (freezingOrganism.useEnergy(Utils.SKY_ENERGY_CONSUMPTION)) {
 					_segColor[i] = Utils.ColorICE;
 					freeze =true;
 					_isinjuredplant =true;
@@ -6309,8 +6036,7 @@ public class Organism extends Rectangle {
 			case GRASS:
 			case C4:
 			case PURPLE:
-			case PLANKTON:
-				if (freezingOrganism.useDetritus(Utils.SKY_ENERGY_CONSUMPTION)) {
+				if (freezingOrganism.useEnergy(Utils.SKY_ENERGY_CONSUMPTION)) {
 					_segColor[i] = Utils.ColorICE;
 					freeze =true;
 					_isinjuredplant =true;
@@ -6323,7 +6049,7 @@ public class Organism extends Rectangle {
 				break;
 			case OLDBARK:
 			case BARK:
-				if (freezingOrganism.useDetritus(Utils.SKY_ENERGY_CONSUMPTION)) {
+				if (freezingOrganism.useEnergy(Utils.SKY_ENERGY_CONSUMPTION)) {
 					_segColor[i] = Utils.ColorDEADBARK;
 					_mphoto[i] = -0.5;
 					freeze =true;
@@ -6338,7 +6064,7 @@ public class Organism extends Rectangle {
 		if (freeze) {
 			freezingOrganism.setColor(Utils.ColorSKY);
 		}
-		if ((!_canreact) && (!isspin) && (_isonlyc4 != 2)) {
+		if ((!_canreact) && (_isonlyc4 != 2)) {
 			_candodge =false;
 			_dodge =false;
 		}
@@ -6359,14 +6085,13 @@ public class Organism extends Rectangle {
 	 */
 	public void paralyzed(Organism freezingOrganism) {
 		boolean freeze =false;
-		boolean isspin =false;
-		_canmove = 0;
+		_canmove =false;
 		_canreact =false;
 		_useframemovement =false;
 		for (int i=0; i<_segments; i++) {
 			switch (getTypeColor(_segColor[i])) {
 			case TEAL:
-				if (freezingOrganism.useDetritus(Utils.SKY_ENERGY_CONSUMPTION)) {
+				if (freezingOrganism.useEnergy(Utils.SKY_ENERGY_CONSUMPTION)) {
 					_segColor[i] = Utils.ColorICE;
 					_mphoto[i] = -20;
 					if (_geneticCode.getPassive()) {
@@ -6376,7 +6101,7 @@ public class Organism extends Rectangle {
 					_isinjured =true;
 					_isfrozen =true;
 				} else {
-					_canmove = 2;
+					_canmove =true;
 					_canreact =true;
 					if (!_geneticCode.getPassive()) {
 						_useframemovement =true;
@@ -6384,33 +6109,15 @@ public class Organism extends Rectangle {
 				}
 				break;
 			case CYAN:
-				if (freezingOrganism.useDetritus(Utils.SKY_ENERGY_CONSUMPTION)) {
+				if (freezingOrganism.useEnergy(Utils.SKY_ENERGY_CONSUMPTION)) {
 					_segColor[i] = Utils.ColorICE;
 					_mphoto[i] = -20;
 					freeze =true;
 					_isinjured =true;
 					_isfrozen =true;
 				} else {
-					_canmove = 2;
+					_canmove =true;
 					_useframemovement =true;
-				}
-				break;
-			case SPIN:
-				if (freezingOrganism.useDetritus(Utils.SKY_ENERGY_CONSUMPTION)) {
-					_segColor[i] = Utils.ColorICE;
-					_mphoto[i] = -20;
-					freeze =true;
-					_isinjured =true;
-					_isfrozen =true;
-					_updateEffects = 2;
-					_spin -= (int)(Utils.SPIN_ENERGY_CONSUMPTION * _geneticCode.getGene(i%_geneticCode.getNGenes()).getLength());
-				} else {
-					isspin =true;
-					_allfrozen =false;
-					if (_canmove == 0) {
-						_canmove = 1;
-					}
-					_spin += (int)(Utils.SPIN_ENERGY_CONSUMPTION * _geneticCode.getGene(i%_geneticCode.getNGenes()).getLength());
 				}
 				break;
 			}
@@ -6418,7 +6125,7 @@ public class Organism extends Rectangle {
 		if (freeze) {
 			freezingOrganism.setColor(Utils.ColorSKY);
 		}
-		if ((!_canreact) && (!isspin) && (_isonlyc4 != 2)) {
+		if ((!_canreact) && (_isonlyc4 != 2)) {
 			_candodge =false;
 			_dodge =false;
 		}
@@ -6696,11 +6403,11 @@ public class Organism extends Rectangle {
 	 * Stop reaction for non moving organisms with eyes
 	 */
 	private final void standstill() {
-		dx *= Utils.RUBBING/2;
+		dx *= Utils.RUBBING/2.5;
 		if (Math.abs(dx) < Utils.tol) dx = 0;
-		dy *= Utils.RUBBING/2;
+		dy *= Utils.RUBBING/2.5;
 		if (Math.abs(dy) < Utils.tol) dy = 0;
-		dtheta *= Utils.RUBBING/5;
+		dtheta *= Utils.RUBBING/2.5;
 		if (Math.abs(dtheta) < Utils.tol) dtheta = 0;
 	}
 	/**
@@ -6919,28 +6626,6 @@ public class Organism extends Rectangle {
 											touchEffects1(org,i,j);
 										} else if (_mphoto[i] == -4) {
 											touchEffects2(org,i,j);
-										} else if (_mphoto[i] == -2) {
-											touchCrimsonEffects(org,i,j);
-											if (_candodge) {
-												// Nothing to do with dodging, just stop piercing
-												_candodge = false;
-											} else {
-												int k;
-												ExLine2DDouble cline = new ExLine2DDouble();
-												for (k = 0; k < org._segments; k++) {
-													if ((k >= j) || (!org.active)) {
-														break;
-													} else {
-														if (org._m[k]>=1) {
-															cline.setLine(org.x1[k] + org._centerX, org.y1[k] + org._centerY,
-																	org.x2[k] + org._centerX, org.y2[k] + org._centerY);
-															if (intersectsLine(cline) && line.intersectsLine(cline)) {
-																touchPiercingEffects(org,i,k);
-															}
-														}
-													}
-												}
-											}											
 										}
 										if (org._canreact) {
 											if ((_mphoto[i] == -9) && (!org._hasgoodvision)) {
@@ -6955,27 +6640,6 @@ public class Organism extends Rectangle {
 											org.touchEffects1(this,j,i);
 										} else if (org._mphoto[j] == -4) {
 											org.touchEffects2(this,j,i);
-										} else if (org._mphoto[j] == -2) {
-											org.touchCrimsonEffects(this,j,i);
-											if (org._candodge) {
-												// Nothing to do with dodging, just stop piercing
-												org._candodge = false;
-											} else {
-												int l;
-												ExLine2DDouble dline = new ExLine2DDouble();
-												for (l = 0; l < _segments; l++) {
-													if ((l >= i) || (!active)) {
-														break;
-													} else {
-														if (_m[l]>=1) {
-															dline.setLine(x1[l]+_centerX, y1[l]+_centerY, x2[l]+_centerX, y2[l]+_centerY);
-															if (org.intersectsLine(dline) && bline.intersectsLine(dline)) {
-																org.touchPiercingEffects(this,j,l);
-															}
-														}
-													}
-												}
-											}											
 										}
 									}
 									return true;
@@ -7110,28 +6774,6 @@ public class Organism extends Rectangle {
 										touchEffects1(org,i,j);
 									} else if (_mphoto[i] == -4) {
 										touchEffects2(org,i,j);
-									} else if (_mphoto[i] == -2) {
-										touchCrimsonEffects(org,i,j);
-										if (_candodge) {
-											// Nothing to do with dodging, just stop piercing
-											_candodge = false;
-										} else {
-											int k;
-											ExLine2DDouble cline = new ExLine2DDouble();
-											for (k = 0; k < org._segments; k++) {
-												if ((k >= j) || (!org.active)) {
-													break;
-												} else {
-													if (org._m[k]>=1) {
-														cline.setLine(org.x1[k] + org._centerX, org.y1[k] + org._centerY,
-																org.x2[k] + org._centerX, org.y2[k] + org._centerY);
-														if (intersectsLine(cline) && line.intersectsLine(cline)) {
-															touchPiercingEffects(org,i,k);
-														}
-													}
-												}
-											}
-										}										
 									}
 									if (org._canreact) {
 										if ((_mphoto[i] == -9) && (!org._hasgoodvision)) {
@@ -7146,27 +6788,6 @@ public class Organism extends Rectangle {
 										org.touchEffects1(this,j,i);
 									} else if (org._mphoto[j] == -4) {
 										org.touchEffects2(this,j,i);
-									} else if (org._mphoto[j] == -2) {
-										org.touchCrimsonEffects(this,j,i);
-										if (org._candodge) {
-											// Nothing to do with dodging, just stop piercing
-											org._candodge = false;
-										} else {
-											int l;
-											ExLine2DDouble dline = new ExLine2DDouble();
-											for (l = 0; l < _segments; l++) {
-												if ((l >= i) || (!active)) {
-													break;
-												} else {
-													if (_m[l]>=1) {
-														dline.setLine(x1[l]+_centerX, y1[l]+_centerY, x2[l]+_centerX, y2[l]+_centerY);
-														if (org.intersectsLine(dline) && bline.intersectsLine(dline)) {
-															org.touchPiercingEffects(this,j,l);
-														}
-													}
-												}
-											}
-										}											
 									}
 								}
 								return true;
@@ -7175,7 +6796,7 @@ public class Organism extends Rectangle {
 					}
 				}
 			} else if (_mphoto[i] == -13) {
-				if (_canmove == 2) {
+				if (_canmove) {
 					line.setLine(x1[i]+_centerX, y1[i]+_centerY, x2[i]+_centerX, y2[i]+_centerY);
 					// First check if the line intersects the bounding box of the other organism
 					if (org.intersectsLine(line)) {
@@ -7197,7 +6818,6 @@ public class Organism extends Rectangle {
 											org.mimic(j);
 											touchReaction(org,i,j);
 											org._segColor[j] = Utils.ColorDARK;
-											break;
 										} else {
 											touchReaction(org,i,j);
 										}
@@ -7228,7 +6848,6 @@ public class Organism extends Rectangle {
 											org.mimic(j);
 											touchBrake(org,i,j);
 											org._segColor[j] = Utils.ColorDARK;
-											break;
 										} else {
 											touchBrake(org,i,j);
 										}
@@ -7302,7 +6921,6 @@ public class Organism extends Rectangle {
 					case DARKJADE:
 					case DARKGREEN:
 					case PURPLE:
-					case PLANKTON:
 					case SPORE:
 					case FRUIT:
 					case VISION:
@@ -7356,7 +6974,6 @@ public class Organism extends Rectangle {
 								    _segvioletReaction[x] = org._segvioletReaction[oseg];
 								    _segvirusReaction[x] = org._segvirusReaction[oseg];
 								    _segmaroonReaction[x] = org._segmaroonReaction[oseg];
-								    _segcrimsonReaction[x] = org._segcrimsonReaction[oseg];
 								    _segoliveReaction[x] = org._segoliveReaction[oseg];
 								    _segmintReaction[x] = org._segmintReaction[oseg];
 								    _segcreamReaction[x] = org._segcreamReaction[oseg];
@@ -7413,7 +7030,6 @@ public class Organism extends Rectangle {
 						    _segvioletReaction[seg] = org._segvioletReaction[oseg];
 						    _segvirusReaction[seg] = org._segvirusReaction[oseg];
 						    _segmaroonReaction[seg] = org._segmaroonReaction[oseg];
-						    _segcrimsonReaction[seg] = org._segcrimsonReaction[oseg];
 						    _segoliveReaction[seg] = org._segoliveReaction[oseg];
 						    _segmintReaction[seg] = org._segmintReaction[oseg];
 						    _segcreamReaction[seg] = org._segcreamReaction[oseg];
@@ -7747,7 +7363,7 @@ public class Organism extends Rectangle {
 					if ((_peaceful) && (_isaplant) && (!org._altruist) && (org._transfersenergy) && (org.active) &&
 						(!org._isaplant) && (!org._isaconsumer) && (!org._isafungus)) {
 						// Transfers energy
-						double takenEnergy3 = Utils.between(0.25 * Utils.ORGANIC_OBTAINED_ENERGY, 0, (_energy - (org._energy+2)));
+						double takenEnergy3 = Utils.between(0.5 * Utils.ORGANIC_OBTAINED_ENERGY, 0, (_energy - (org._energy+2)));
 						// The other organism will be shown in cyan
 						org.setColor(Color.CYAN);
 						// This organism will be shown in rose
@@ -8090,35 +7706,6 @@ public class Organism extends Rectangle {
 				default:
 					if (org._mphoto[oseg] == -1) {
 	                  switch (getTypeColor(org._segColor[oseg])) {
-	                  case CRIMSON:
-	                	    if (_segcrimsonReaction[seg] == 1) {
-	                	    	stopmoving();
-						    } else
-	                    	if (_segcrimsonReaction[seg] == 2) {
-	                    	if ((!_candodge && Utils.random.nextBoolean()) || (_candodge && Utils.random.nextInt(10)>2)) {
-	    						dx=Utils.between((Utils.REACTION_VEL*_m[i]*(Math.ceil(_m[i])*(x1[seg]-x2[seg])+(x2[i]-x1[i])))/_mass, -5d, 5d);
-	    						dy=Utils.between((Utils.REACTION_VEL*_m[i]*(Math.ceil(_m[i])*(y1[seg]-y2[seg])+(y2[i]-y1[i])))/_mass, -5d, 5d);
-	    						dtheta=Utils.between(dtheta+Utils.randomSign()*_m[i]*Math.PI/_I, -Utils.MAX_ROT, Utils.MAX_ROT);
-	                    	}} else
-	    	                if (_segcrimsonReaction[seg] == 3) {
-	    	    	    	if ((!_candodge && Utils.random.nextBoolean()) || (_candodge && Utils.random.nextInt(10)>2)) {
-	    	    	    	    dx=Utils.between((Utils.REACTION_VEL*_m[i]*(Math.ceil(_m[i])*(x1[0]-x2[seg])+(x2[i]-x1[i])))/_mass, -5d, 5d);
-	    	    	    	    dy=Utils.between((Utils.REACTION_VEL*_m[i]*(Math.ceil(_m[i])*(y1[0]-y2[seg])+(y2[i]-y1[i])))/_mass, -5d, 5d);
-	    	    	    	    dtheta=Utils.between(dtheta+Utils.randomSign()*_m[i]*Math.PI/_I, -Utils.MAX_ROT, Utils.MAX_ROT);
-	  	                    }} else
-	  	                    if (_segcrimsonReaction[seg] == 4) {
-	  	                    if ((!_candodge && Utils.random.nextBoolean()) || (_candodge && Utils.random.nextInt(10)>2)) {
-	    						dx=Utils.between((Utils.REACTION_VEL*_m[i]*(Math.ceil(_m[i])*(x2[seg]-x1[seg])+(x2[i]-x1[i])))/_mass, -5d, 5d);
-	    						dy=Utils.between((Utils.REACTION_VEL*_m[i]*(Math.ceil(_m[i])*(y2[seg]-y1[seg])+(y2[i]-y1[i])))/_mass, -5d, 5d);
-	    						dtheta=Utils.between(dtheta+Utils.randomSign()*_m[i]*Math.PI/_I, -Utils.MAX_ROT, Utils.MAX_ROT);
-	  	                    }} else
-	  	                    if (_segcrimsonReaction[seg] == 5) {
-	  	                    if ((!_candodge && Utils.random.nextBoolean()) || (_candodge && Utils.random.nextInt(10)>2)) {
-	  	    					dx=Utils.between((Utils.REACTION_VEL*_m[i]*(Math.ceil(_m[i])*(org._centerX-_centerX)+(x2[i]-x1[i])))/_mass, -5d, 5d);
-	  	    					dy=Utils.between((Utils.REACTION_VEL*_m[i]*(Math.ceil(_m[i])*(org._centerY-_centerY)+(y2[i]-y1[i])))/_mass, -5d, 5d);
-	  	    					dtheta=Utils.between(dtheta+Utils.randomSign()*_m[i]*Math.PI/_I, -Utils.MAX_ROT, Utils.MAX_ROT);
-	  	  	                }}
-	                	    break;
 	                  case ORANGE:
 	                	    if (_segorangeReaction[seg] == 1) {
 	                	    	stopmoving();
@@ -8649,7 +8236,6 @@ public class Organism extends Rectangle {
 		    					dtheta=Utils.between(dtheta+Utils.randomSign()*_m[i]*Math.PI/_I, -Utils.MAX_ROT, Utils.MAX_ROT);
 		  	                }}
 	              	        break;
-	                  case PLANKTON:
 	                  case GREEN:
 	                  case FOREST:
 	                  case SPRING:
@@ -8780,7 +8366,7 @@ public class Organism extends Rectangle {
 			                }}
 	                	    break;
 	                  case FRUIT:
-	                	  if ((org._sporeversion == 2) && (!_hasgoodvision)) {
+	                	  if (org._sporeversion == 2) {
 	                		if (_segwhiteReaction[seg] == 1) {
 	    	                  	stopmoving();
 	    	  				} else
@@ -9436,11 +9022,6 @@ public class Organism extends Rectangle {
 		default:
 			if (org._mphoto[oseg] == -1) {
               switch (getTypeColor(org._segColor[oseg])) {
-              case CRIMSON:
-        	        if (_segcrimsonReaction[seg] == 1) {
-        	    	    standstill();
-				    }
-	                break;
               case ORANGE:
             	    if (_segorangeReaction[seg] == 1) {
                 	    standstill();
@@ -9545,7 +9126,6 @@ public class Organism extends Rectangle {
           	        	standstill();
 				    }
                     break;
-              case PLANKTON:
               case GREEN:
               case FOREST:
               case SPRING:
@@ -9580,7 +9160,7 @@ public class Organism extends Rectangle {
 				    }
                     break;
               case FRUIT:
-            	  if ((org._sporeversion == 2) && (!_hasgoodvision)) {
+            	  if (org._sporeversion == 2) {
             		if (_segwhiteReaction[seg] == 1) {
 	                	standstill();
 	  				}
@@ -9700,553 +9280,6 @@ public class Organism extends Rectangle {
               break;
 			}
         }
-	}
-	/**
-	 * Applies the hostile effects produced by Crimson touching other segments.
-	 * Non-piercing version
-	 *
-	 * @param org  The organism which is touching.
-	 * @param seg  Index of this organism's segment.
-	 * @param oseg  Index of the other organism's segment.
-	 */
-	private final void touchCrimsonEffects(Organism org, int seg, int oseg) {
-		// Crimson segment: try to get energy from soft segments
-		double takenEnergyCrimson = 0;
-		if (org._hasdodged == false) {
-		    org._hasdodged =true;
-	    }
-		switch (getTypeColor(org._segColor[oseg])) {
-		case WHITE:
-			if (org._isaplant) {
-				// Get energy depending on segment length
-				takenEnergyCrimson = Utils.between((0.5 * _m[seg]) / Utils.CRIMSON_ENERGY_CONSUMPTION, 0, org._energy);
-				// The other organism will be shown in green brown
-				org.setColor(Utils.ColorGREENBROWN);
-				// This organism will be shown in crimson
-				setColor(Utils.ColorCRIMSON);
-			} else {
-				if ((org._isaconsumer) || (org._isafungus) || (org._plagueversion > 0)) {
-					break;
-				} else {
-					if (!_isenhanced) {
-						// candodge is used here to make Crimson piercing stop later
-						_candodge =true;
-					}
-				}
-			}
-			break;
-		case PLAGUE:
-			if (org._isaplant) {
-				if (org._isinfectious) {
-					// Get energy depending on segment length
-					takenEnergyCrimson = Utils.between((0.5 * _m[seg]) / Utils.CRIMSON_ENERGY_CONSUMPTION, 0, org._energy);
-					// The other organism will be shown in green brown
-					org.setColor(Utils.ColorGREENBROWN);
-					// This organism will be shown in crimson
-					setColor(Utils.ColorCRIMSON);
-				} else {
-					// Get energy depending on segment length
-					takenEnergyCrimson = Utils.between((0.1 * _m[seg]) / Utils.CRIMSON_ENERGY_CONSUMPTION, 0, org._energy);
-					// The other organism will be shown in green brown
-					org.setColor(Utils.ColorGREENBROWN);
-					// This organism will be shown in crimson
-					setColor(Utils.ColorCRIMSON);
-					if ((!org._isaplant) && (!_isenhanced)) {
-						// candodge is used here to make Crimson piercing stop later
-						_candodge =true;
-					}
-				}
-			}
-			break;
-		case MAROON:
-		case CREAM:
-			if (!_isenhanced) {
-				// candodge is used here to make Crimson piercing stop later
-				_candodge =true;
-			}
-			break;
-		case OLIVE:
-		case DARKOLIVE:
-		case SKY:
-		case DEEPSKY:
-		case OCHRE:
-		case FALLOW:
-		case LILAC:
-		case DARKLILAC:
-			if ((!org._isaplant) && (!_isenhanced)) {
-				// candodge is used here to make Crimson piercing stop later
-				_candodge =true;
-			}
-			break;
-		case SPIKEPOINT:
-			if ((!org._isenhanced) && (!_isenhanced)) {
-				// candodge is used here to make Crimson piercing stop later
-				_candodge =true;
-			}
-			break;
-		case VIOLET:
-		case GRAY:
-			if (!_isenhanced) {
-				if ((org._isaconsumer) || (org._isafungus) || (!org._isaplant)) {
-					// Get energy depending on segment length
-					takenEnergyCrimson = Utils.between((_m[seg]) / Utils.CRIMSON_ENERGY_CONSUMPTION, 0, org._energy);
-					// The other organism will be shown in yellow
-				    org.setColor(Color.YELLOW);
-				    // This organism will be shown in crimson
-				    setColor(Utils.ColorCRIMSON);
-				}
-			}
-			break;
-		case BLUE:
-			if (org.useEnergy(Utils.BLUE_ENERGY_CONSUMPTION)) {
-				if (((!org._isaplant) || (org._framesColor <= 0)) && (!_isenhanced)) {
-					// candodge is used here to make Crimson piercing stop later
-					_candodge =true;
-				}
-				if (org._isenhanced) {
-				    useDetritus(Utils.between((0.5 * Math.sqrt(org._m[oseg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, _energy));
-					setColor(Utils.ColorDARKLILAC);
-					if (_energy < Utils.tol) {
-						die(org);
-						// candodge is used here to make Crimson piercing stop later
-						_candodge =true;
-					}
-				} else {
-					setColor(Utils.ColorCRIMSON);
-				}
-				org.setColor(Color.BLUE);
-		    } else {
-		    	// Get energy depending on segment length
-				takenEnergyCrimson = Utils.between((0.5 * _m[seg]) / Utils.CRIMSON_ENERGY_CONSUMPTION, 0, org._energy);
-				// The other organism will be shown in green brown
-				org.setColor(Utils.ColorGREENBROWN);
-				// This organism will be shown in crimson
-				setColor(Utils.ColorCRIMSON);
-			}
-			break;
-		case GRASS:
-			if ((org._dodge) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
-				org.setColor(Utils.ColorTEAL);
-				setColor(Utils.ColorCRIMSON);
-				// candodge is used here to make Crimson piercing stop later
-				_candodge =true;
-			} else {
-				// Get energy depending on segment length
-				takenEnergyCrimson = Utils.between((0.5 * _m[seg]) / Utils.CRIMSON_ENERGY_CONSUMPTION, 0, org._energy);
-				// The other organism will be shown in green brown
-				org.setColor(Utils.ColorGREENBROWN);
-				// This organism will be shown in crimson
-				setColor(Utils.ColorCRIMSON);
-			}
-			break;
-		case LEAF:
-			if ((org._dodge) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
-				org.setColor(Utils.ColorTEAL);
-				setColor(Utils.ColorCRIMSON);
-				// candodge is used here to make Crimson piercing stop later
-				_candodge =true;
-			} else {
-				if (org._modifiesleaf) {
-					if (org._framesColor > 0) {
-						// Get energy depending on segment length
-						takenEnergyCrimson = Utils.between((0.5 * _m[seg]) / Utils.CRIMSON_ENERGY_CONSUMPTION, 0, org._energy);
-						// The other organism will be shown in green brown
-						org.setColor(Utils.ColorGREENBROWN);
-					} else {
-						// Get energy depending on segment length
-						takenEnergyCrimson = Utils.between((0.01 * _m[seg]) / Utils.CRIMSON_ENERGY_CONSUMPTION, 0, org._energy);
-						// The other organism will be shown in dark olive
-						org.setColorforLeaf(Utils.ColorDARKOLIVE);
-					}
-					if (!_isenhanced) {
-						// candodge is used here to make Crimson piercing stop later
-						_candodge =true;
-					}
-				} else {
-					// Get energy depending on segment length
-					takenEnergyCrimson = Utils.between((_m[seg]) / Utils.CRIMSON_ENERGY_CONSUMPTION, 0, org._energy);
-				    // The other organism will be shown in yellow
-				    org.setColor(Color.YELLOW);
-				}
-				// This organism will be shown in crimson
-				setColor(Utils.ColorCRIMSON);
-			}
-			break;
-		case YELLOW:
-			if ((org._dodge) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
-				org.setColor(Utils.ColorTEAL);
-				setColor(Utils.ColorCRIMSON);
-				// candodge is used here to make Crimson piercing stop later
-				_candodge =true;
-			} else {
-				if ((org._isaconsumer) || (org._isafungus) || (org._isaplant) || (org._transfersenergy)) {
-					// Get energy depending on segment length
-					takenEnergyCrimson = Utils.between((_m[seg]) / Utils.CRIMSON_ENERGY_CONSUMPTION, 0, org._energy);
-				    // The other organism will be shown in yellow
-				    org.setColor(Color.YELLOW);
-				    // This organism will be shown in crimson
-				    setColor(Utils.ColorCRIMSON);
-				} else {
-					// Get energy depending on segment length
-					takenEnergyCrimson = Utils.between((0.1 * _m[seg]) / Utils.CRIMSON_ENERGY_CONSUMPTION, 0, org._energy);
-					// The other organism will be shown in green brown
-					org.setColor(Utils.ColorGREENBROWN);
-					// This organism will be shown in crimson
-					setColor(Utils.ColorCRIMSON);
-				}
-			}
-			break;
-		case PLANKTON:
-		case GREEN:
-		case FOREST:
-		case SPRING:
-		case SUMMER:
-        case WINTER:
-		case LIME:
-		case C4:
-		case JADE:
-		case DARKJADE:
-		case DARKGREEN:
-		case PURPLE:
-		case CYAN:
-		case TEAL:
-		case SPIN:
-		case AUBURN:
-		case INDIGO:
-		case BLOND:
-		case FLOWER:
-		case DARKGRAY:
-		case GOLD:
-		case SPORE:
-			if ((org._dodge) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
-				org.setColor(Utils.ColorTEAL);
-				setColor(Utils.ColorCRIMSON);
-				// candodge is used here to make Crimson piercing stop later
-				_candodge =true;
-			} else {
-				// Get energy depending on segment length
-				takenEnergyCrimson = Utils.between((_m[seg]) / Utils.CRIMSON_ENERGY_CONSUMPTION, 0, org._energy);
-			    // The other organism will be shown in yellow
-			    org.setColor(Color.YELLOW);
-			    // This organism will be shown in crimson
-			    setColor(Utils.ColorCRIMSON);
-			}
-			break;
-		case FRUIT:
-			if ((org._sporeversion == 2) && (!_hasgoodvision)) {
-				// Get energy depending on segment length
-				takenEnergyCrimson = Utils.between((0.1 * _m[seg]) / Utils.CRIMSON_ENERGY_CONSUMPTION, 0, org._energy);
-				// The other organism will be shown in green brown
-				org.setColor(Utils.ColorGREENBROWN);
-				if (_infectedGeneticCode != org._geneticCode) {
-					// Infectious fruit
-					infectedByFruit(org);
-					setColor(Utils.ColorBLOND);
-				} else {
-					// This organism will be shown in crimson
-				    setColor(Utils.ColorCRIMSON);
-				}
-
-			}
-			break;
-		case SPIKE:
-			if (org._isenhanced) {
-				// Get energy depending on segment length
-				takenEnergyCrimson = Utils.between((_m[seg]) / Utils.CRIMSON_ENERGY_CONSUMPTION, 0, org._energy);
-			    // The other organism will be shown in yellow
-			    org.setColor(Color.YELLOW);
-			    // This organism will be shown in crimson
-			    setColor(Utils.ColorCRIMSON);
-			} else {
-				if (org._isaplant) {
-					// Get energy depending on segment length
-					takenEnergyCrimson = Utils.between((0.5 * _m[seg]) / Utils.CRIMSON_ENERGY_CONSUMPTION, 0, org._energy);
-					// The other organism will be shown in green brown
-					org.setColor(Utils.ColorGREENBROWN);
-					// This organism will be shown in crimson
-					setColor(Utils.ColorCRIMSON);
-				} else {
-					if (!_isenhanced) {
-						// candodge is used here to make Crimson piercing stop later
-						_candodge =true;
-					}
-				}
-			}
-			break;
-		case BROKEN:
-		case VISION:
-		case SILVER:
-			// Get energy depending on segment length
-			takenEnergyCrimson = Utils.between((_m[seg]) / Utils.CRIMSON_ENERGY_CONSUMPTION, 0, org._energy);
-		    // The other organism will be shown in yellow
-		    org.setColor(Color.YELLOW);
-		    // This organism will be shown in crimson
-		    setColor(Utils.ColorCRIMSON);
-			break;
-		case LAVENDER:
-			if (_altruist) {
-				// candodge is used here to make Crimson piercing stop later
-				_candodge =true;
-			} else {
-				if ((org._dodge) && (org._framesColor <= 0) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
-					org.setColor(Utils.ColorTEAL);
-					setColor(Utils.ColorCRIMSON);
-					// candodge is used here to make Crimson piercing stop later
-					_candodge =true;
-				} else {
-					if ((!org._isaconsumer) && (!org._isafungus) && (!org._isakiller)) {
-						// Get energy depending on segment length
-						takenEnergyCrimson = Utils.between((0.5 * _m[seg]) / Utils.CRIMSON_ENERGY_CONSUMPTION, 0, org._energy);
-						// The other organism will be shown in green brown
-						org.setColor(Utils.ColorGREENBROWN);
-					} else {
-						// Get energy depending on segment length
-						takenEnergyCrimson = Utils.between((_m[seg]) / Utils.CRIMSON_ENERGY_CONSUMPTION, 0, org._energy);
-					    // The other organism will be shown in yellow
-					    org.setColor(Color.YELLOW);
-					}
-					// This organism will be shown in crimson
-				    setColor(Utils.ColorCRIMSON);
-				}
-			}
-			break;
-		case MINT:
-		case MAGENTA:
-		case ROSE:
-			if (_altruist) {
-				// candodge is used here to make Crimson piercing stop later
-				_candodge =true;
-			} else {
-				if ((org._dodge) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
-					org.setColor(Utils.ColorTEAL);
-					setColor(Utils.ColorCRIMSON);
-					// candodge is used here to make Crimson piercing stop later
-					_candodge =true;
-				} else {
-					if ((!org._isaconsumer) && (!org._isafungus) && (!org._isakiller)) {
-						// Get energy depending on segment length
-						takenEnergyCrimson = Utils.between((0.5 * _m[seg]) / Utils.CRIMSON_ENERGY_CONSUMPTION, 0, org._energy);
-						// The other organism will be shown in green brown
-						org.setColor(Utils.ColorGREENBROWN);
-					} else {
-						// Get energy depending on segment length
-						takenEnergyCrimson = Utils.between((_m[seg]) / Utils.CRIMSON_ENERGY_CONSUMPTION, 0, org._energy);
-					    // The other organism will be shown in yellow
-					    org.setColor(Color.YELLOW);
-					}
-					// This organism will be shown in crimson
-				    setColor(Utils.ColorCRIMSON);
-				}
-			}
-			break;
-		case DARK:
-			if ((org._framesColor <= 7) && (org._blackversion > 0)) {
-				// The other organism will be shown in the color it mimicks
-				org.mimicColor();
-				// candodge is used here to make Crimson piercing stop later
-				_candodge =true;
-			} else {
-				if ((org._dodge) && (org._blackversion == 0) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
-					org.setColor(Utils.ColorTEAL);
-					setColor(Utils.ColorCRIMSON);
-					// candodge is used here to make Crimson piercing stop later
-					_candodge =true;
-				} else {
-					// Get energy depending on segment length
-					takenEnergyCrimson = Utils.between((0.5 * _m[seg]) / Utils.CRIMSON_ENERGY_CONSUMPTION, 0, org._energy);
-					// The other organism will be shown in green brown
-					org.setColor(Utils.ColorGREENBROWN);
-					// This organism will be shown in crimson
-					setColor(Utils.ColorCRIMSON);
-					if ((!org._isaplant) && (!_isenhanced)) {
-						// candodge is used here to make Crimson piercing stop later
-						_candodge =true;
-					}
-				}
-			}
-			break;
-		default:
-			break;
-		}
-		// energy interchange
-		if (takenEnergyCrimson > 0) {
-			org._energy -= takenEnergyCrimson;
-			_energy += takenEnergyCrimson;
-			takenEnergyCrimson = takenEnergyCrimson * Utils.ORGANIC_SUBS_PRODUCED;
-			useDetritus(takenEnergyCrimson);
-		}
-		if (!org.active) {
-			// candodge is used here to make Crimson piercing stop later
-			_candodge =true;
-		}
-		// Check if the other organism has died
-		if (org.alive && org._energy < Utils.tol) {
-			org.die(this);
-			// candodge is used here to make Crimson piercing stop later
-			_candodge =true;
-		}
-	}
-	/**
-	 * Applies the hostile effects produced by Crimson touching other segments.
-	 * Piercing version
-	 *
-	 * @param org  The organism which is touching.
-	 * @param seg  Index of this organism's segment.
-	 * @param oseg  Index of the other organism's segment.
-	 */
-	private final void touchPiercingEffects(Organism org, int seg, int oseg) {
-		// Crimson segment: try to get energy from soft segments
-		double takenEnergyCrimson = 0;
-		if (org._hasdodged == false) {
-		    org._hasdodged =true;
-	    }
-		switch (getTypeColor(org._segColor[oseg])) {
-		case VIOLET:
-		case GRAY:
-			if (!_isenhanced) {
-				if ((org._isaconsumer) || (org._isafungus) || (!org._isaplant)) {
-					// Get energy depending on segment length
-					takenEnergyCrimson = Utils.between((_m[seg]) / Utils.CRIMSON_ENERGY_CONSUMPTION, 0, org._energy);
-					// The other organism will be shown in pierced yellow
-				    org.setColor(Utils.ColorPIERCED);
-				    // This organism will be shown in crimson
-				    setColor(Utils.ColorCRIMSON);
-				}
-			}
-			break;
-		case GRASS:
-			// Get energy depending on segment length
-			takenEnergyCrimson = Utils.between((0.5 * _m[seg]) / Utils.CRIMSON_ENERGY_CONSUMPTION, 0, org._energy);
-			// The other organism will be shown in pierced yellow
-		    org.setColor(Utils.ColorPIERCED);
-			// This organism will be shown in crimson
-			setColor(Utils.ColorCRIMSON);
-			break;
-		case LEAF:
-			if (org._modifiesleaf) {
-				// Get energy depending on segment length
-				takenEnergyCrimson = Utils.between((0.5 * _m[seg]) / Utils.CRIMSON_ENERGY_CONSUMPTION, 0, org._energy);
-				// The other organism will be shown in pierced yellow
-			    org.setColor(Utils.ColorPIERCED);
-			} else {
-				// Get energy depending on segment length
-				takenEnergyCrimson = Utils.between((_m[seg]) / Utils.CRIMSON_ENERGY_CONSUMPTION, 0, org._energy);
-				// The other organism will be shown in pierced yellow
-			    org.setColor(Utils.ColorPIERCED);
-			}
-			// This organism will be shown in crimson
-			setColor(Utils.ColorCRIMSON);
-			break;
-		case YELLOW:
-			if ((org._isaconsumer) || (org._isafungus) || (org._isaplant) || (org._transfersenergy)) {
-				// Get energy depending on segment length
-				takenEnergyCrimson = Utils.between((_m[seg]) / Utils.CRIMSON_ENERGY_CONSUMPTION, 0, org._energy);
-				// The other organism will be shown in pierced yellow
-			    org.setColor(Utils.ColorPIERCED);
-			    // This organism will be shown in crimson
-			    setColor(Utils.ColorCRIMSON);
-			} else {
-				// Get energy depending on segment length
-				takenEnergyCrimson = Utils.between((0.1 * _m[seg]) / Utils.CRIMSON_ENERGY_CONSUMPTION, 0, org._energy);
-				// The other organism will be shown in pierced yellow
-			    org.setColor(Utils.ColorPIERCED);
-				// This organism will be shown in crimson
-				setColor(Utils.ColorCRIMSON);
-			}
-			break;
-		case PLANKTON:
-		case GREEN:
-		case FOREST:
-		case SPRING:
-		case SUMMER:
-        case WINTER:
-		case LIME:
-		case C4:
-		case JADE:
-		case DARKJADE:
-		case DARKGREEN:
-		case PURPLE:
-		case CYAN:
-		case TEAL:
-		case SPIN:
-		case AUBURN:
-		case INDIGO:
-		case BLOND:
-		case FLOWER:
-		case DARKGRAY:
-		case GOLD:
-		case SPORE:
-			// Get energy depending on segment length
-			takenEnergyCrimson = Utils.between((_m[seg]) / Utils.CRIMSON_ENERGY_CONSUMPTION, 0, org._energy);
-			// The other organism will be shown in pierced yellow
-		    org.setColor(Utils.ColorPIERCED);
-		    // This organism will be shown in crimson
-		    setColor(Utils.ColorCRIMSON);
-			break;
-		case BROKEN:
-		case VISION:
-		case SILVER:
-			// Get energy depending on segment length
-			takenEnergyCrimson = Utils.between((_m[seg]) / Utils.CRIMSON_ENERGY_CONSUMPTION, 0, org._energy);
-			// The other organism will be shown in pierced yellow
-		    org.setColor(Utils.ColorPIERCED);
-		    // This organism will be shown in crimson
-		    setColor(Utils.ColorCRIMSON);
-			break;
-		case LAVENDER:
-			if (_altruist) {
-				break;
-			} else {
-				if ((!org._isaconsumer) && (!org._isafungus) && (!org._isakiller)) {
-					// Get energy depending on segment length
-					takenEnergyCrimson = Utils.between((0.5 * _m[seg]) / Utils.CRIMSON_ENERGY_CONSUMPTION, 0, org._energy);
-					// The other organism will be shown in pierced yellow
-				    org.setColor(Utils.ColorPIERCED);
-				} else {
-					// Get energy depending on segment length
-					takenEnergyCrimson = Utils.between((_m[seg]) / Utils.CRIMSON_ENERGY_CONSUMPTION, 0, org._energy);
-					// The other organism will be shown in pierced yellow
-				    org.setColor(Utils.ColorPIERCED);
-				}
-				// This organism will be shown in crimson
-			    setColor(Utils.ColorCRIMSON);
-			}
-			break;
-		case MINT:
-		case MAGENTA:
-		case ROSE:
-			if (_altruist) {
-				break;
-			} else {
-				if ((!org._isaconsumer) && (!org._isafungus) && (!org._isakiller)) {
-					// Get energy depending on segment length
-					takenEnergyCrimson = Utils.between((0.5 * _m[seg]) / Utils.CRIMSON_ENERGY_CONSUMPTION, 0, org._energy);
-					// The other organism will be shown in pierced yellow
-				    org.setColor(Utils.ColorPIERCED);
-				} else {
-					// Get energy depending on segment length
-					takenEnergyCrimson = Utils.between((_m[seg]) / Utils.CRIMSON_ENERGY_CONSUMPTION, 0, org._energy);
-					// The other organism will be shown in pierced yellow
-				    org.setColor(Utils.ColorPIERCED);
-				}
-				// This organism will be shown in crimson
-			    setColor(Utils.ColorCRIMSON);
-			}
-			break;
-		default:
-			break;
-		}
-		// energy interchange
-		if (takenEnergyCrimson > 0) {
-			org._energy -= takenEnergyCrimson;
-			_energy += takenEnergyCrimson;
-			takenEnergyCrimson = takenEnergyCrimson * Utils.ORGANIC_SUBS_PRODUCED;
-			useDetritus(takenEnergyCrimson);
-		}
-		// Check if the other organism has died
-		if (org.alive && org._energy < Utils.tol) {
-			org.die(this);
-		}
 	}
 	/**
 	 * Applies the hostile effects produced by two touching segments.
@@ -10399,7 +9432,6 @@ public class Organism extends Rectangle {
 				    }
 				}
 				break;
-			case PLANKTON:
 			case GREEN:
 			case FOREST:
 			case SPRING:
@@ -10413,7 +9445,6 @@ public class Organism extends Rectangle {
 			case PURPLE:
 			case TEAL:
 			case CYAN:
-			case SPIN:
 			case AUBURN:
 			case INDIGO:
 			case BLOND:
@@ -10551,7 +9582,7 @@ public class Organism extends Rectangle {
 				// If the other segment is blue, it acts as a shield
 				if (org.useEnergy(Utils.BLUE_ENERGY_CONSUMPTION)) {
 					if (org._isenhanced) {
-					    useDetritus(Utils.between((0.5 * Math.sqrt(org._m[oseg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, _energy));
+					    useEnergy(Utils.between((0.5 * Math.sqrt(org._m[oseg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, _energy));
 						setColor(Utils.ColorDARKLILAC);
 						if (_energy < Utils.tol) {
 							die(org);
@@ -10589,7 +9620,7 @@ public class Organism extends Rectangle {
 				}
 				break;
 			case SKY:
-				if (org.useDetritus(Utils.SKY_ENERGY_CONSUMPTION)) {
+				if (org.useEnergy(Utils.SKY_ENERGY_CONSUMPTION)) {
 					org._segColor[oseg] = Utils.ColorDEEPSKY;
 					org._mphoto[oseg] = -20;
 					org._useextraeffects = true;
@@ -10666,7 +9697,7 @@ public class Organism extends Rectangle {
 				}
 				break;
 			case FRUIT:
-				if ((org._sporeversion == 2) && (!_hasgoodvision)) {
+				if (org._sporeversion == 2) {
 					if (useEnergy(Utils.ORANGE_ENERGY_CONSUMPTION)) {
 						if (org._isenhanced) {
 							// Get energy depending on segment length
@@ -10704,22 +9735,17 @@ public class Organism extends Rectangle {
 			    }
 				break;
 			case DARK:
-				if ((org._framesColor <= 7) && (org._blackversion > 0)) {
+				if ((org._framesColor <= 0) && (org._blackversion > 0)) {
 					// The other organism will be shown in the color it mimicks
 					org.mimicColor();
 				} else {
-					if ((org._dodge) && (org._blackversion == 0) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
-						org.setColor(Utils.ColorTEAL);
+					if (useEnergy(Utils.ORANGE_ENERGY_CONSUMPTION)) {
+						// Get energy depending on segment length
+						takenEnergyOrange = Utils.between((Math.sqrt(_m[seg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy);
+						// The other organism will be shown in yellow
+						org.setColor(Color.YELLOW);
+						// This organism will be shown in orange
 						setColor(Color.ORANGE);
-					} else {
-						if (useEnergy(Utils.ORANGE_ENERGY_CONSUMPTION)) {
-							// Get energy depending on segment length
-							takenEnergyOrange = Utils.between((Math.sqrt(_m[seg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy);
-							// The other organism will be shown in yellow
-							org.setColor(Color.YELLOW);
-							// This organism will be shown in orange
-							setColor(Color.ORANGE);
-						}
 					}
 				}
 				break;
@@ -10733,7 +9759,6 @@ public class Organism extends Rectangle {
 			case OLDBARK:
 			case RED:
 			case MAROON:
-			case CRIMSON:
 			case CREAM:
 			case OCHRE:
 			case OLIVE:
@@ -10756,7 +9781,7 @@ public class Organism extends Rectangle {
 				org._energy -= takenEnergyOrange;
 				_energy += takenEnergyOrange;
 				takenEnergyOrange = takenEnergyOrange * Utils.ORGANIC_SUBS_PRODUCED;
-				useDetritus(takenEnergyOrange);
+				useEnergy(takenEnergyOrange);
 			}
 			break;
 		case FIRE:
@@ -10869,7 +9894,6 @@ public class Organism extends Rectangle {
 				}
             	break;
 			case MAROON:
-			case CRIMSON:
 				if (useEnergy(Utils.FIRE_ENERGY_CONSUMPTION)) {
 					// Get energy depending on segment length
 					takenEnergyFire = Utils.between((0.25 * Math.sqrt(_m[seg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy);
@@ -10980,7 +10004,6 @@ public class Organism extends Rectangle {
 					}
 				}
 				break;
-			case PLANKTON:
 			case GREEN:
 			case FOREST:
 			case SPRING:
@@ -10994,7 +10017,6 @@ public class Organism extends Rectangle {
 			case PURPLE:
 			case TEAL:
 			case CYAN:
-			case SPIN:
 			case AUBURN:
 			case INDIGO:
 			case BLOND:
@@ -11166,7 +10188,7 @@ public class Organism extends Rectangle {
 				// If the other segment is blue, it acts as a shield
 				if (org.useEnergy(Utils.BLUE_ENERGY_CONSUMPTION)) {
 					if (org._isenhanced) {
-					    useDetritus(Utils.between((0.5 * Math.sqrt(org._m[oseg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, _energy));
+					    useEnergy(Utils.between((0.5 * Math.sqrt(org._m[oseg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, _energy));
 						setColor(Utils.ColorDARKLILAC);
 						if (_energy < Utils.tol) {
 							die(org);
@@ -11205,7 +10227,7 @@ public class Organism extends Rectangle {
 			    break;
 			case SKY:
 				if ((!_isenhanced) || (org._skyversion == 2)) {
-					if (org.useDetritus(Utils.SKY_ENERGY_CONSUMPTION)) {
+					if (org.useEnergy(Utils.SKY_ENERGY_CONSUMPTION)) {
 						org._segColor[oseg] = Utils.ColorDEEPSKY;
 						org._mphoto[oseg] = -20;
 						org._useextraeffects = true;
@@ -11468,7 +10490,7 @@ public class Organism extends Rectangle {
 				}
 				break;
 			case DARK:
-				if ((org._framesColor <= 7) && (org._blackversion > 0)) {
+				if ((org._framesColor <= 0) && (org._blackversion > 0)) {
 					// The other organism will be shown in the color it mimicks
 					org.mimicColor();
 				} else {
@@ -11482,18 +10504,13 @@ public class Organism extends Rectangle {
 							setColor(Utils.ColorFIRE);
 						}
 					} else {
-						if ((org._dodge) && (org._blackversion == 0) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
-							org.setColor(Utils.ColorTEAL);
+						if (useEnergy(Utils.FIRE_ENERGY_CONSUMPTION)) {
+							// Get energy depending on segment length
+							takenEnergyFire = Utils.between((0.25 * Math.sqrt(_m[seg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy);
+							// The other organism will be shown in yellow
+							org.setColor(Color.YELLOW);
+							// This organism will be shown in dark fire
 							setColor(Utils.ColorDARKFIRE);
-						} else {
-							if (useEnergy(Utils.FIRE_ENERGY_CONSUMPTION)) {
-								// Get energy depending on segment length
-								takenEnergyFire = Utils.between((0.25 * Math.sqrt(_m[seg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy);
-								// The other organism will be shown in yellow
-								org.setColor(Color.YELLOW);
-								// This organism will be shown in dark fire
-								setColor(Utils.ColorDARKFIRE);
-							}
 						}
 					}
 				}
@@ -11524,7 +10541,7 @@ public class Organism extends Rectangle {
 				org._energy -= takenEnergyFire;
 				_energy += takenEnergyFire;
 				takenEnergyFire = takenEnergyFire * Utils.ORGANIC_SUBS_PRODUCED;
-				useDetritus(takenEnergyFire);
+				useEnergy(takenEnergyFire);
 			}
 			break;
 		case RED:
@@ -11553,7 +10570,6 @@ public class Organism extends Rectangle {
 				break;
 			case ORANGE:
 			case MAROON:
-			case CRIMSON:
 			case PINK:
 				if (useEnergy(Utils.RED_ENERGY_CONSUMPTION)) {
 					// Get energy depending on segment length
@@ -11598,13 +10614,24 @@ public class Organism extends Rectangle {
 				break;
 			case GRAY:
 				if ((_isenhanced) && ((org._isaconsumer) || (org._isafungus))) {
-					if (useEnergy(Utils.RED_ENERGY_CONSUMPTION)) {
-						// Get energy depending on segment length
-						takenEnergyRed = Utils.between((Math.sqrt(_m[seg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy);
-						// The other organism will be shown in yellow
-						org.setColor(Color.YELLOW);
-						// This organism will be shown in red
-						setColor(Color.RED);
+					if (org._isenhanced) {
+						if (useEnergy(Utils.RED_ENERGY_CONSUMPTION)) {
+							// Get energy depending on segment length
+							takenEnergyRed = Utils.between((Math.sqrt(_m[seg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy);
+							// The other organism will be shown in yellow
+							org.setColor(Color.YELLOW);
+							// This organism will be shown in red
+							setColor(Color.RED);
+						}
+					} else {
+						if (useEnergy(Utils.RED_ENERGY_CONSUMPTION)) {
+							// Get energy depending on segment length
+							takenEnergyRed = Utils.between((0.25 * Math.sqrt(_m[seg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy);
+							// The other organism will be shown in yellow
+							org.setColor(Color.YELLOW);
+							// This organism will be shown in dark fire
+							setColor(Utils.ColorDARKFIRE);
+						}
 					}
 				}
 				break;
@@ -11643,7 +10670,7 @@ public class Organism extends Rectangle {
 				}
 				break;
 			case DARK:
-				if ((org._framesColor <= 7) && (org._blackversion > 0)) {
+				if ((org._framesColor <= 0) && (org._blackversion > 0)) {
 					// The other organism will be shown in the color it mimicks
 					org.mimicColor();
 				}
@@ -11663,7 +10690,7 @@ public class Organism extends Rectangle {
 				org._energy -= takenEnergyRed;
 				_energy += takenEnergyRed;
 				takenEnergyRed = takenEnergyRed * Utils.ORGANIC_SUBS_PRODUCED;
-				useDetritus(takenEnergyRed);
+				useEnergy(takenEnergyRed);
 			}
 			break;
 		case PINK:
@@ -11911,7 +10938,7 @@ public class Organism extends Rectangle {
 						}
 				    } else {
 				    	if (useEnergy(Utils.PINK_ENERGY_CONSUMPTION)) {
-				    		if ((_fallowversion > 0) && (org._max_age < 0)) {
+				    		if ((_fallowversion > 0) && ((org._age >> 8) >= org._max_age * 2)) {
 								// Get the total energy of the still born child
 								takenEnergyPink = org._energy;
 							} else {
@@ -12010,7 +11037,7 @@ public class Organism extends Rectangle {
 				}
 				break;
 			case DARK:
-				if ((org._framesColor <= 7) && (org._blackversion > 0)) {
+				if ((org._framesColor <= 0) && (org._blackversion > 0)) {
 					// The other organism will be shown in the color it mimicks
 					org.mimicColor();
 				}
@@ -12076,9 +11103,9 @@ public class Organism extends Rectangle {
 						} else {
 							if (org._framesColor < 0) {
 								// Get energy depending on segment length
-								takenEnergyMaroon = Utils.between((0.02 * _m[seg]) / Utils.MAROON_ENERGY_CONSUMPTION, 0, org._energy);
-								// The other organism will be shown in broken
-								org.setColor(Utils.ColorBROKEN);
+								takenEnergyMaroon = Utils.between((0.1 * _m[seg]) / Utils.MAROON_ENERGY_CONSUMPTION, 0, org._energy);
+								// The other organism will be shown in green brown
+								org.setColor(Utils.ColorGREENBROWN);
 							} else {
 								// Get energy depending on segment length
 								takenEnergyMaroon = Utils.between((0.02 * _m[seg]) / Utils.MAROON_ENERGY_CONSUMPTION, 0, org._energy);
@@ -12096,7 +11123,6 @@ public class Organism extends Rectangle {
 					setColor(Utils.ColorMAROON);
 				}
 				break;
-			case PLANKTON:
 			case GREEN:
 			case FOREST:
 			case SPRING:
@@ -12124,7 +11150,7 @@ public class Organism extends Rectangle {
 				if (org._isaplant) {
 				    if (org.useEnergy(Utils.BLUE_ENERGY_CONSUMPTION)) {
 				    	if ((org._isenhanced) && (!_isenhanced)) {
-						    useDetritus(Utils.between((0.25 * Math.sqrt(org._m[oseg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, _energy));
+						    useEnergy(Utils.between((0.25 * Math.sqrt(org._m[oseg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, _energy));
 							setColor(Utils.ColorDARKLILAC);
 							if (_energy < Utils.tol) {
 								die(org);
@@ -12164,7 +11190,7 @@ public class Organism extends Rectangle {
 				}
 				break;
 			case FRUIT:
-				if ((org._sporeversion == 2) && (!_hasgoodvision)) {
+				if (org._sporeversion == 2) {
 					// Get energy depending on segment length
 					takenEnergyMaroon = Utils.between((_m[seg]) / Utils.MAROON_ENERGY_CONSUMPTION, 0, org._energy);
 					// The other organism will be shown in yellow
@@ -12250,7 +11276,6 @@ public class Organism extends Rectangle {
 		    	break;
 			case CYAN:
 			case TEAL:
-			case SPIN:
 			case YELLOW:
 			case AUBURN:
 			case INDIGO:
@@ -12353,7 +11378,7 @@ public class Organism extends Rectangle {
 				break;
 			case SKY:
 				if ((_isenhanced) && (org._isaplant)) {
-					if (org.useDetritus(Utils.SKY_ENERGY_CONSUMPTION)) {
+					if (org.useEnergy(Utils.SKY_ENERGY_CONSUMPTION)) {
 						org._segColor[oseg] = Utils.ColorDEEPSKY;
 						org._mphoto[oseg] = -20;
 						org._useextraeffects = true;
@@ -12381,22 +11406,17 @@ public class Organism extends Rectangle {
 				}
 				break;
 			case DARK:
-				if ((org._framesColor <= 7) && (org._blackversion > 0)) {
+				if ((org._framesColor <= 0) && (org._blackversion > 0)) {
 					// The other organism will be shown in the color it mimicks
 					org.mimicColor();
 				} else {
 					if ((_isenhanced) && (org._isaplant)) {
-						if ((org._dodge) && (org._blackversion == 0) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
-							org.setColor(Utils.ColorTEAL);
-							setColor(Utils.ColorMAROON);
-						} else {
-							// Get energy depending on segment length
-							takenEnergyMaroon = Utils.between((_m[seg]) / Utils.MAROON_ENERGY_CONSUMPTION, 0, org._energy);
-							// The other organism will be shown in yellow
-							org.setColor(Color.YELLOW);
-							// This organism will be shown in auburn
-							setColor(Utils.ColorAUBURN);
-						}
+						// Get energy depending on segment length
+						takenEnergyMaroon = Utils.between((_m[seg]) / Utils.MAROON_ENERGY_CONSUMPTION, 0, org._energy);
+						// The other organism will be shown in yellow
+						org.setColor(Color.YELLOW);
+						// This organism will be shown in auburn
+						setColor(Utils.ColorAUBURN);
 					}
 				}
 				break;
@@ -12408,7 +11428,7 @@ public class Organism extends Rectangle {
 				org._energy -= takenEnergyMaroon;
 				_energy += takenEnergyMaroon;
 				takenEnergyMaroon = takenEnergyMaroon * Utils.ORGANIC_SUBS_PRODUCED;
-				useDetritus(takenEnergyMaroon);
+				useEnergy(takenEnergyMaroon);
 			}
 			break;
 		case CREAM:
@@ -12421,12 +11441,7 @@ public class Organism extends Rectangle {
 		    case WHITE:
 				if ((org._isaplant) || (_creamversion == 2) || (org._isaconsumer) || (org._isafungus) || (org._plagueversion > 0) || (org._isauburn)) {
 					if (org._lavender > 0) {
-						org._lavender -= 180 + Math.round(_m[seg]);
-						if (org._lavender <= 0) {
-							org._lavender = 0;
-						} else {
-							org.setColor(Utils.ColorLIGHT_BLUE);
-						}
+						org.lavendershield();
 						setColor(Utils.ColorCREAM);
 					}
 					if (org._lavender <= 0) {
@@ -12447,12 +11462,7 @@ public class Organism extends Rectangle {
 					setColor(Utils.ColorCREAM);
 				} else {
 					if (org._lavender > 0) {
-						org._lavender -= 180 + Math.round(_m[seg]);
-						if (org._lavender <= 0) {
-							org._lavender = 0;
-						} else {
-							org.setColor(Utils.ColorLIGHT_BLUE);
-						}
+						org.lavendershield();
 						setColor(Utils.ColorCREAM);
 					}
 					if (org._lavender <= 0) {
@@ -12492,7 +11502,6 @@ public class Organism extends Rectangle {
 					}
 				}
 				break;
-		    case PLANKTON:
 		    case GREEN:
 		    case GRASS:
 			case FOREST:
@@ -12507,7 +11516,6 @@ public class Organism extends Rectangle {
 			case PURPLE:
 			case TEAL:
 			case CYAN:
-			case SPIN:
 			case YELLOW:
 			case AUBURN:
 			case INDIGO:
@@ -12521,12 +11529,7 @@ public class Organism extends Rectangle {
 					setColor(Utils.ColorCREAM);
 				} else {
 					if (org._lavender > 0) {
-						org._lavender -= 180 + Math.round(_m[seg]);
-						if (org._lavender <= 0) {
-							org._lavender = 0;
-						} else {
-							org.setColor(Utils.ColorLIGHT_BLUE);
-						}
+						org.lavendershield();
 						setColor(Utils.ColorCREAM);
 					}
 					if (org._lavender <= 0) {
@@ -12544,12 +11547,7 @@ public class Organism extends Rectangle {
 			case SPIKE:
 		    	if (((org._isaplant) && (org._createlavender == 0)) || (org._isenhanced)) {
 		    		if (org._lavender > 0) {
-		    			org._lavender -= 180 + Math.round(_m[seg]);
-						if (org._lavender <= 0) {
-							org._lavender = 0;
-						} else {
-							org.setColor(Utils.ColorLIGHT_BLUE);
-						}
+						org.lavendershield();
 						setColor(Utils.ColorCREAM);
 					}
 					if (org._lavender <= 0) {
@@ -12571,12 +11569,7 @@ public class Organism extends Rectangle {
 					org.setColor(Color.BLUE);
 				} else {
 					if (org._lavender > 0) {
-						org._lavender -= 180 + Math.round(_m[seg]);
-						if (org._lavender <= 0) {
-							org._lavender = 0;
-						} else {
-							org.setColor(Utils.ColorLIGHT_BLUE);
-						}
+						org.lavendershield();
 						if ((_isenhanced) && (_creamversion == 3)) {
 						    // This organism will be shown in dark gray
 						    setColor(Color.DARK_GRAY);
@@ -12604,7 +11597,7 @@ public class Organism extends Rectangle {
 			    break;
 		    case SKY:
 		    	if ((active) || (org._skyversion == 1)) {
-		    		if (org.useDetritus(Utils.SKY_ENERGY_CONSUMPTION)) {
+		    		if (org.useEnergy(Utils.SKY_ENERGY_CONSUMPTION)) {
 						org._segColor[oseg] = Utils.ColorDEEPSKY;
 						org._mphoto[oseg] = -20;
 						org._useextraeffects = true;
@@ -12613,12 +11606,7 @@ public class Organism extends Rectangle {
 					} else {
 						// Doesn't have energy to use the shield
 						if (org._lavender > 0) {
-							org._lavender -= 180 + Math.round(_m[seg]);
-							if (org._lavender <= 0) {
-								org._lavender = 0;
-							} else {
-								org.setColor(Utils.ColorLIGHT_BLUE);
-							}
+							org.lavendershield();
 							setColor(Utils.ColorCREAM);
 						}
 						if (org._lavender <= 0) {
@@ -12635,14 +11623,9 @@ public class Organism extends Rectangle {
 		    	}
 		    	break;
 		    case DEEPSKY:
-		    	if (((_isenhanced) && (_creamversion == 3)) || (!active)) {
+		    	if (((_isenhanced) || (!active)) && (_creamversion == 3)) {
 		    		if (org._lavender > 0) {
-		    			org._lavender -= 180 + Math.round(_m[seg]);
-						if (org._lavender <= 0) {
-							org._lavender = 0;
-						} else {
-							org.setColor(Utils.ColorLIGHT_BLUE);
-						}
+		    			org.lavendershield();
 						setColor(Color.DARK_GRAY);
 					}
 					if (org._lavender <= 0) {
@@ -12658,12 +11641,7 @@ public class Organism extends Rectangle {
 				} else {
 					if ((!_isfrozen) && (org._createlavender == 0)) {
 						if (org._lavender > 0) {
-							org._lavender -= 180 + Math.round(_m[seg]);
-							if (org._lavender <= 0) {
-								org._lavender = 0;
-							} else {
-								org.setColor(Utils.ColorLIGHT_BLUE);
-							}
+							org.lavendershield();
 							setColor(Utils.ColorCREAM);
 						}
 						if (org._lavender <= 0) {
@@ -12685,12 +11663,7 @@ public class Organism extends Rectangle {
 		    case OCHRE:
 		    	if (org._isaplant) {
 		    		if (org._lavender > 0) {
-		    			org._lavender -= 180 + Math.round(_m[seg]);
-						if (org._lavender <= 0) {
-							org._lavender = 0;
-						} else {
-							org.setColor(Utils.ColorLIGHT_BLUE);
-						}
+						org.lavendershield();
 						setColor(Utils.ColorCREAM);
 					}
 					if (org._lavender <= 0) {
@@ -12706,12 +11679,7 @@ public class Organism extends Rectangle {
 		    	} else {
 		    		if ((_isenhanced) && (_creamversion == 3)) {
 			    		if (org._lavender > 0) {
-			    			org._lavender -= 180 + Math.round(_m[seg]);
-							if (org._lavender <= 0) {
-								org._lavender = 0;
-							} else {
-								org.setColor(Utils.ColorLIGHT_BLUE);
-							}
+			    			org.lavendershield();
 							setColor(Color.DARK_GRAY);
 						}
 						if (org._lavender <= 0) {
@@ -12728,14 +11696,9 @@ public class Organism extends Rectangle {
 		    	}
 		    	break;
 		    case FALLOW:
-		    	if (((_isenhanced) && (_creamversion == 3)) || (!active)) {
+		    	if (((_isenhanced) || (!active)) && (_creamversion == 3)) {
 		    		if (org._lavender > 0) {
-		    			org._lavender -= 180 + Math.round(_m[seg]);
-						if (org._lavender <= 0) {
-							org._lavender = 0;
-						} else {
-							org.setColor(Utils.ColorLIGHT_BLUE);
-						}
+		    			org.lavendershield();
 						setColor(Color.DARK_GRAY);
 					}
 					if (org._lavender <= 0) {
@@ -12753,12 +11716,7 @@ public class Organism extends Rectangle {
 		    case OLDBARK:
 		    	if (((_isenhanced) || (!active)) && (_creamversion == 3)) {
 		    		if (org._lavender > 0) {
-		    			org._lavender -= 180 + Math.round(_m[seg]);
-						if (org._lavender <= 0) {
-							org._lavender = 0;
-						} else {
-							org.setColor(Utils.ColorLIGHT_BLUE);
-						}
+		    			org.lavendershield();
 						setColor(Color.DARK_GRAY);
 					}
 					if (org._lavender <= 0) {
@@ -12785,12 +11743,7 @@ public class Organism extends Rectangle {
 		    		break;
 				} else {
 					if (org._lavender > 0) {
-						org._lavender -= 180 + Math.round(_m[seg]);
-						if (org._lavender <= 0) {
-							org._lavender = 0;
-						} else {
-							org.setColor(Utils.ColorLIGHT_BLUE);
-						}
+						org.lavendershield();
 						setColor(Utils.ColorCREAM);
 					}
 					if (org._lavender <= 0) {
@@ -12809,16 +11762,10 @@ public class Organism extends Rectangle {
 		    case FIRE:
 			case RED:
 			case MAROON:
-			case CRIMSON:
 			case PINK:
 				if ((_isenhanced) && (_creamversion == 1)) {
 					if (org._lavender > 0) {
-						org._lavender -= 180 + Math.round(_m[seg]);
-						if (org._lavender <= 0) {
-							org._lavender = 0;
-						} else {
-							org.setColor(Utils.ColorLIGHT_BLUE);
-						}
+						org.lavendershield();
 						setColor(Color.DARK_GRAY);
 					}
 					if (org._lavender <= 0) {
@@ -12855,12 +11802,7 @@ public class Organism extends Rectangle {
 						setColor(Utils.ColorCREAM);
 					} else {
 						if (org._lavender > 0) {
-							org._lavender -= 180 + Math.round(_m[seg]);
-							if (org._lavender <= 0) {
-								org._lavender = 0;
-							} else {
-								org.setColor(Utils.ColorLIGHT_BLUE);
-							}
+							org.lavendershield();
 							setColor(Utils.ColorCREAM);
 						}
 						if (org._lavender <= 0) {
@@ -12900,12 +11842,7 @@ public class Organism extends Rectangle {
 						} else {
 							if (_isenhanced) {
 					    		if (org._lavender > 0) {
-					    			org._lavender -= 180 + Math.round(_m[seg]);
-									if (org._lavender <= 0) {
-										org._lavender = 0;
-									} else {
-										org.setColor(Utils.ColorLIGHT_BLUE);
-									}
+					    			org.lavendershield();
 									setColor(Color.DARK_GRAY);
 								}
 								if (org._lavender <= 0) {
@@ -12920,12 +11857,7 @@ public class Organism extends Rectangle {
 								}
 							} else {
 								if (org._lavender > 0) {
-									org._lavender -= 180 + Math.round(_m[seg]);
-									if (org._lavender <= 0) {
-										org._lavender = 0;
-									} else {
-										org.setColor(Utils.ColorLIGHT_BLUE);
-									}
+									org.lavendershield();
 									setColor(Utils.ColorCREAM);
 								}
 								if (org._lavender <= 0) {
@@ -12997,32 +11929,22 @@ public class Organism extends Rectangle {
 				}
 				break;
 			case DARK:
-				if ((org._framesColor <= 7) && (org._blackversion > 0)) {
+				if ((org._framesColor <= 0) && (org._blackversion > 0)) {
 					// The other organism will be shown in the color it mimicks
 					org.mimicColor();
 				} else {
-					if ((org._dodge) && (org._blackversion == 0) && ((org._canreact) || (!_hasgoodvision)) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
-						org.setColor(Utils.ColorTEAL);
+					if (org._lavender > 0) {
+						org.lavendershield();
 						setColor(Utils.ColorCREAM);
-					} else {
-						if (org._lavender > 0) {
-							org._lavender -= 180 + Math.round(_m[seg]);
-							if (org._lavender <= 0) {
-								org._lavender = 0;
-							} else {
-								org.setColor(Utils.ColorLIGHT_BLUE);
-							}
+					}
+					if (org._lavender <= 0) {
+						if (useEnergy(Utils.CREAM_ENERGY_CONSUMPTION)) {
+							// Get energy depending on segment length
+							takenEnergyCream = Utils.between((0.1 * Math.sqrt(_m[seg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy);
+							// The other organism will be shown in green brown
+							org.setColor(Utils.ColorGREENBROWN);
+							// This organism will be shown in cream
 							setColor(Utils.ColorCREAM);
-						}
-						if (org._lavender <= 0) {
-							if (useEnergy(Utils.CREAM_ENERGY_CONSUMPTION)) {
-								// Get energy depending on segment length
-								takenEnergyCream = Utils.between((0.1 * Math.sqrt(_m[seg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy);
-								// The other organism will be shown in green brown
-								org.setColor(Utils.ColorGREENBROWN);
-								// This organism will be shown in cream
-								setColor(Utils.ColorCREAM);
-							}
 						}
 					}
 				}
@@ -13047,12 +11969,7 @@ public class Organism extends Rectangle {
 				break;
 			default:
 				if (org._lavender > 0) {
-					org._lavender -= 180 + Math.round(_m[seg]);
-					if (org._lavender <= 0) {
-						org._lavender = 0;
-					} else {
-						org.setColor(Utils.ColorLIGHT_BLUE);
-					}
+					org.lavendershield();
 					setColor(Utils.ColorCREAM);
 				}
 				if (org._lavender <= 0) {
@@ -13075,7 +11992,7 @@ public class Organism extends Rectangle {
 				} else {
 					takenEnergyCream = takenEnergyCream * Utils.CREAM_ORGANIC_SUBS_PRODUCED;
 				}
-				useDetritus(takenEnergyCream);
+				useEnergy(takenEnergyCream);
 		    }
 			break;
 		case SPIKEPOINT:
@@ -13135,7 +12052,7 @@ public class Organism extends Rectangle {
 				if (_isenhanced) {
 					if (org.useEnergy(Utils.BLUE_ENERGY_CONSUMPTION)) {
 						if (org._isenhanced) {
-						    useDetritus(Utils.between((0.5 * Math.sqrt(org._m[oseg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, _energy));
+						    useEnergy(Utils.between((0.5 * Math.sqrt(org._m[oseg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, _energy));
 							setColor(Utils.ColorDARKLILAC);
 							if (_energy < Utils.tol) {
 								die(org);
@@ -13159,7 +12076,7 @@ public class Organism extends Rectangle {
 					if (_isaplant) {
 						if (org.useEnergy(Utils.BLUE_ENERGY_CONSUMPTION)) {
 							if (org._isenhanced) {
-							    useDetritus(Utils.between((0.5 * Math.sqrt(org._m[oseg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, _energy));
+							    useEnergy(Utils.between((0.5 * Math.sqrt(org._m[oseg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, _energy));
 								setColor(Utils.ColorDARKLILAC);
 								if (_energy < Utils.tol) {
 									die(org);
@@ -13184,7 +12101,7 @@ public class Organism extends Rectangle {
 				break;
 			case SKY:
 				if (_isenhanced) {
-					if (org.useDetritus(Utils.SKY_ENERGY_CONSUMPTION)) {
+					if (org.useEnergy(Utils.SKY_ENERGY_CONSUMPTION)) {
 						org._segColor[oseg] = Utils.ColorDEEPSKY;
 						org._mphoto[oseg] = -20;
 						org._useextraeffects = true;
@@ -13203,7 +12120,7 @@ public class Organism extends Rectangle {
 					}
 				} else {
 					if ((_isaplant) || (org._isaconsumer) || (org._isafungus) || ((!org._isaplant) && (_isaconsumer))) {
-						if (org.useDetritus(16 * Utils.SKY_ENERGY_CONSUMPTION)) {
+						if (org.useEnergy(16 * Utils.SKY_ENERGY_CONSUMPTION)) {
 							org._segColor[oseg] = Utils.ColorDEEPSKY;
 							org._mphoto[oseg] = -20;
 							org._useextraeffects = true;
@@ -13229,7 +12146,7 @@ public class Organism extends Rectangle {
 			        org.setColor(Utils.ColorDEEPSKY);
 				} else {
 					if ((_isaplant) || (org._isaconsumer) || (org._isafungus) || ((!org._isaplant) && (_isaconsumer))) {
-						if (org.useDetritus(16 * Utils.SKY_ENERGY_CONSUMPTION)) {
+						if (org.useEnergy(16 * Utils.SKY_ENERGY_CONSUMPTION)) {
 							setColor(Utils.ColorSPIKE);
 					        org.setColor(Utils.ColorDEEPSKY);
 						} else {
@@ -13563,7 +12480,6 @@ public class Organism extends Rectangle {
 					}
 				}
 				break;
-			case PLANKTON:
 			case GREEN:
 			case FOREST:
 			case SPRING:
@@ -13577,7 +12493,6 @@ public class Organism extends Rectangle {
 			case PURPLE:
 			case TEAL:
 			case CYAN:
-			case SPIN:
 			case AUBURN:
 			case INDIGO:
 			case BLOND:
@@ -13685,7 +12600,7 @@ public class Organism extends Rectangle {
 				break;
 		    case FRUIT:
 		    	if (_isenhanced) {
-		    		if ((org._sporeversion == 2) && (!_hasgoodvision)) {
+		    		if (org._sporeversion == 2) {
 		    		    if (useEnergy(Utils.MOSQUITO_ENERGY_CONSUMPTION)) {
 		    		    	// Get energy depending on segment length
 		    		    	takenEnergySpike = Utils.between((0.8 * Math.sqrt(_m[seg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy);
@@ -13830,38 +12745,28 @@ public class Organism extends Rectangle {
 				}
 		    	break;
 		    case DARK:
-		    	if ((org._framesColor <= 7) && (org._blackversion > 0)) {
+		    	if ((org._framesColor <= 0) && (org._blackversion > 0)) {
 					// The other organism will be shown in the color it mimicks
 					org.mimicColor();
 				} else {
 					if (_isenhanced) {
-						if ((org._dodge) && (org._blackversion == 0) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
-							org.setColor(Utils.ColorTEAL);
+						if (useEnergy(Utils.MOSQUITO_ENERGY_CONSUMPTION)) {
+						    // Get energy depending on segment length
+							takenEnergySpike = Utils.between((0.8 * Math.sqrt(_m[seg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy);
+						    // The other organism will be shown in yellow
+						    org.setColor(Color.YELLOW);
+						    // This organism will be shown in spike
 							setColor(Utils.ColorSPIKE);
-						} else {
-							if (useEnergy(Utils.MOSQUITO_ENERGY_CONSUMPTION)) {
-							    // Get energy depending on segment length
-								takenEnergySpike = Utils.between((0.8 * Math.sqrt(_m[seg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy);
-							    // The other organism will be shown in yellow
-							    org.setColor(Color.YELLOW);
-							    // This organism will be shown in spike
-								setColor(Utils.ColorSPIKE);
-							}
 						}
 					} else {
 						if ((_isaplant) || (org._isaconsumer) || (org._isafungus) || ((!org._isaplant) && (_isaconsumer))) {
-							if ((org._dodge) && (org._blackversion == 0) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
-								org.setColor(Utils.ColorTEAL);
+							if (useEnergy(Utils.SPIKE_ENERGY_CONSUMPTION)) {
+								// Get energy depending on segment length
+								takenEnergySpike = Utils.between((5 * Math.sqrt(_m[seg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy);
+								// The other organism will be shown in dark lilac
+							    org.setColor(Utils.ColorDARKLILAC);
+							    // This organism will be shown in spike
 								setColor(Utils.ColorSPIKE);
-							} else {							
-								if (useEnergy(Utils.SPIKE_ENERGY_CONSUMPTION)) {
-									// Get energy depending on segment length
-									takenEnergySpike = Utils.between((5 * Math.sqrt(_m[seg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy);
-									// The other organism will be shown in dark lilac
-								    org.setColor(Utils.ColorDARKLILAC);
-								    // This organism will be shown in spike
-									setColor(Utils.ColorSPIKE);
-								}
 							}
 						}
 					}
@@ -13905,9 +12810,9 @@ public class Organism extends Rectangle {
 					org._energy -= takenEnergySpike;
 					_energy += takenEnergySpike;
 					takenEnergySpike = takenEnergySpike * Utils.ORGANIC_SUBS_PRODUCED;
-					useDetritus(takenEnergySpike);
+					useEnergy(takenEnergySpike);
 				} else {
-				    org.useDetritus(takenEnergySpike);
+				    org.useEnergy(takenEnergySpike);
 				}
 			}
 			break;
@@ -13931,9 +12836,9 @@ public class Organism extends Rectangle {
 							}
 							if (org._lavender <= 0) {
 								if (org._isenhanced) {
-									org.useDetritus(Utils.between((Math.abs(org.dx) + Math.abs(org.dy)) * (Utils.ORGANIC_OBTAINED_ENERGY/250), 0, org._energy));
+									org.useEnergy(Utils.between((Math.abs(org.dx) + Math.abs(org.dy)) * (Utils.ORGANIC_OBTAINED_ENERGY/250), 0, org._energy));
 								} else {
-									org.useDetritus(Utils.between(2 * (Math.abs(org.dx) + Math.abs(org.dy)) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy));
+									org.useEnergy(Utils.between(2 * (Math.abs(org.dx) + Math.abs(org.dy)) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy));
 								}
 							    org.setColor(Utils.ColorDARKLILAC);
 							}
@@ -13958,7 +12863,7 @@ public class Organism extends Rectangle {
 									org.lavendershield();
 								}
 								if (org._lavender <= 0) {
-									org.useDetritus(Utils.between(2 * (Math.abs(org.dx) + Math.abs(org.dy)) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy));
+									org.useEnergy(Utils.between(2 * (Math.abs(org.dx) + Math.abs(org.dy)) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy));
 								    org.setColor(Utils.ColorDARKLILAC);
 								}
 							}
@@ -13980,7 +12885,7 @@ public class Organism extends Rectangle {
 								org.lavendershield();
 							}
 							if (org._lavender <= 0) {
-								org.useDetritus(Utils.between(2 * (Math.abs(org.dx) + Math.abs(org.dy)) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy));
+								org.useEnergy(Utils.between(2 * (Math.abs(org.dx) + Math.abs(org.dy)) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy));
 							    org.setColor(Utils.ColorDARKLILAC);
 							}
 						}
@@ -14002,9 +12907,9 @@ public class Organism extends Rectangle {
 							}
 							if (org._lavender <= 0) {
 								if (org._isenhanced) {
-									org.useDetritus(Utils.between(0.5 * (Math.abs(org.dx) + Math.abs(org.dy)) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy));
+									org.useEnergy(Utils.between(0.5 * (Math.abs(org.dx) + Math.abs(org.dy)) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy));
 								} else {
-									org.useDetritus(Utils.between((Math.abs(org.dx) + Math.abs(org.dy)) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy));
+									org.useEnergy(Utils.between((Math.abs(org.dx) + Math.abs(org.dy)) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy));
 								}
 							    org.setColor(Utils.ColorDARKLILAC);
 							}
@@ -14044,7 +12949,7 @@ public class Organism extends Rectangle {
 									org.lavendershield();
 								}
 								if (org._lavender <= 0) {
-									org.useDetritus(Utils.between(2 * (Math.abs(org.dx) + Math.abs(org.dy)) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy));
+									org.useEnergy(Utils.between(2 * (Math.abs(org.dx) + Math.abs(org.dy)) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy));
 								    org.setColor(Utils.ColorDARKLILAC);
 								}
 							}
@@ -14066,7 +12971,7 @@ public class Organism extends Rectangle {
 								org.lavendershield();
 							}
 							if (org._lavender <= 0) {
-								org.useDetritus(Utils.between(2 * (Math.abs(org.dx) + Math.abs(org.dy)) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy));
+								org.useEnergy(Utils.between(2 * (Math.abs(org.dx) + Math.abs(org.dy)) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy));
 							    org.setColor(Utils.ColorDARKLILAC);
 							    if (!org._isenhanced) {
 							    	org._isinjured =true;
@@ -14078,7 +12983,7 @@ public class Organism extends Rectangle {
 				}
 				break;
 			case DARK:
-				if ((org._framesColor <= 7) && (org._blackversion > 0)) {
+				if ((org._framesColor <= 0) && (org._blackversion > 0)) {
 					// The other organism will be shown in the color it mimicks
 					org.mimicColor();
 					if (Utils.random.nextBoolean()) {
@@ -14093,7 +12998,7 @@ public class Organism extends Rectangle {
 									org.lavendershield();
 								}
 								if (org._lavender <= 0) {
-									org.useDetritus(Utils.between(2 * (Math.abs(org.dx) + Math.abs(org.dy)) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy));
+									org.useEnergy(Utils.between(2 * (Math.abs(org.dx) + Math.abs(org.dy)) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy));
 								    org.setColor(Utils.ColorDARKLILAC);
 								}
 							}
@@ -14117,7 +13022,7 @@ public class Organism extends Rectangle {
 								org.lavendershield();
 							}
 							if (org._lavender <= 0) {
-								org.useDetritus(Utils.between(2 * (Math.abs(org.dx) + Math.abs(org.dy)) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy));
+								org.useEnergy(Utils.between(2 * (Math.abs(org.dx) + Math.abs(org.dy)) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy));
 							    org.setColor(Utils.ColorDARKLILAC);
 							}
 						}
@@ -14132,7 +13037,7 @@ public class Organism extends Rectangle {
 			switch (getTypeColor(org._segColor[oseg])) {
 			case SILVER:
 				if ((org._infectedGeneticCode != _geneticCode) && (org._nTotalInfected < _nTotalInfected)) {
-					if ((org._isaplant) || (org._isaconsumer) || ((org._isafungus) && (org._nTotalKills > 0))) {
+					if ((org._isaplant) || (org._isaconsumer)) {
 						if (useEnergy(Utils.SILVER_ENERGY_CONSUMPTION)) {
 					        org.infectedBy(this);
 					        org.setColor(Utils.ColorBLOND);
@@ -14148,7 +13053,7 @@ public class Organism extends Rectangle {
 			    		}
 			    	}
 				}
-				if (((_nTotalKills > 0) && ((_isaconsumer) || (_isafungus))) || (_isenhanced)) {
+				if (((_nTotalKills > 0) && ((_isaconsumer) || ((_isafungus) && (_isaconsumer = true)))) || (_isenhanced)) {
 					if (((org._nTotalKills > 0) && ((org._isaconsumer) || (org._isafungus))) || (org._isenhanced)) {
 						if (useEnergy(Utils.EXPERIENCE_ENERGY_CONSUMPTION)) {
 						    // Get energy depending on segment length and relation between kills of both organisms
@@ -14190,7 +13095,7 @@ public class Organism extends Rectangle {
 			    	}
 				}
 				if ((org._isaplant) || (org._isaconsumer) || (org._isafungus) || (org._plagueversion > 0) || (org._isauburn)) {
-					if (((_nTotalKills > 0) && ((_isaconsumer) || (_isafungus))) || (_isenhanced)) {
+					if (((_nTotalKills > 0) && ((_isaconsumer) || ((_isafungus) && (_isaconsumer = true)))) || (_isenhanced)) {
 						if (useEnergy(Utils.EXPERIENCE_ENERGY_CONSUMPTION)) {
 						    // Get energy depending on segment length and relation between kills of both organisms
 						    takenEnergy = Utils.between(((_nTotalKills+12)/(org._nTotalKills+12))*(Math.sqrt(_m[seg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy);
@@ -14203,8 +13108,8 @@ public class Organism extends Rectangle {
 				}
 				break;
 			case FRUIT:
-				if ((org._sporeversion == 2) && (!_hasgoodvision)) {
-					if (((_nTotalKills > 0) && ((_isaconsumer) || (_isafungus))) || (_isenhanced)) {
+				if (org._sporeversion == 2) {
+					if (((_nTotalKills > 0) && ((_isaconsumer) || ((_isafungus) && (_isaconsumer = true)))) || (_isenhanced)) {
 						if (useEnergy(Utils.EXPERIENCE_ENERGY_CONSUMPTION)) {
 						    // Get energy depending on segment length and relation between kills of both organisms
 						    takenEnergy = Utils.between(((_nTotalKills+12)/(org._nTotalKills+12))*(0.1 * Math.sqrt(_m[seg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy);
@@ -14231,7 +13136,7 @@ public class Organism extends Rectangle {
 			    		}
 			    	}
 				}
-				if (((_nTotalKills > 0) && ((_isaconsumer) || (_isafungus))) || (_isenhanced)) {
+				if (((_nTotalKills > 0) && ((_isaconsumer) || ((_isafungus) && (_isaconsumer = true)))) || (_isenhanced)) {
 					if ((org._dodge) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
 						org.setColor(Utils.ColorTEAL);
 					    setColor(Utils.ColorGOLD);
@@ -14268,7 +13173,7 @@ public class Organism extends Rectangle {
 				    	}
 					}
 				}
-				if (((_nTotalKills > 0) && ((_isaconsumer) || (_isafungus))) || (_isenhanced)) {
+				if (((_nTotalKills > 0) && ((_isaconsumer) || ((_isafungus) && (_isaconsumer = true)))) || (_isenhanced)) {
 					if ((org._dodge) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
 						org.setColor(Utils.ColorTEAL);
 					    setColor(Utils.ColorGOLD);
@@ -14305,7 +13210,7 @@ public class Organism extends Rectangle {
 				    	}
 					}
 				}
-				if (((_nTotalKills > 0) && ((_isaconsumer) || (_isafungus))) || (_isenhanced)) {
+				if (((_nTotalKills > 0) && ((_isaconsumer) || ((_isafungus) && (_isaconsumer = true)))) || (_isenhanced)) {
 					if ((org._dodge) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
 						org.setColor(Utils.ColorTEAL);
 					    setColor(Utils.ColorGOLD);
@@ -14374,7 +13279,7 @@ public class Organism extends Rectangle {
 				    	}
 					}
 				}
-				if (((_nTotalKills > 0) && ((_isaconsumer) || (_isafungus))) || (_isenhanced)) {
+				if (((_nTotalKills > 0) && ((_isaconsumer) || ((_isafungus) && (_isaconsumer = true)))) || (_isenhanced)) {
 					if ((org._dodge) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
 						org.setColor(Utils.ColorTEAL);
 					    setColor(Utils.ColorGOLD);
@@ -14391,11 +13296,9 @@ public class Organism extends Rectangle {
 				}
 				break;
 			case DARKGREEN:
-			case PLANKTON:
 			case PURPLE:
 			case TEAL:
 			case CYAN:
-			case SPIN:
 			case YELLOW:
 			case AUBURN:
 			case BLOND:
@@ -14424,7 +13327,7 @@ public class Organism extends Rectangle {
 						}
 					}
 				}
-				if (((_nTotalKills > 0) && ((_isaconsumer) || (_isafungus))) || (_isenhanced)) {
+				if (((_nTotalKills > 0) && ((_isaconsumer) || ((_isafungus) && (_isaconsumer = true)))) || (_isenhanced)) {
 					if ((org._dodge) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
 						org.setColor(Utils.ColorTEAL);
 					    setColor(Utils.ColorGOLD);
@@ -14448,7 +13351,7 @@ public class Organism extends Rectangle {
 				        setColor(Color.LIGHT_GRAY);
 					}
 				}
-			    if (((_nTotalKills > 0) && ((_isaconsumer) || (_isafungus))) || (_isenhanced)) {
+			    if (((_nTotalKills > 0) && ((_isaconsumer) || ((_isafungus) && (_isaconsumer = true)))) || (_isenhanced)) {
 				    if (useEnergy(Utils.EXPERIENCE_ENERGY_CONSUMPTION)) {
 					    // Get energy depending on segment length and relation between kills of both organisms
 					    takenEnergy = Utils.between(((_nTotalKills+12)/(org._nTotalKills+12))*(Math.sqrt(_m[seg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy);
@@ -14467,7 +13370,7 @@ public class Organism extends Rectangle {
 				        setColor(Color.LIGHT_GRAY);
 					}
 				}
-				if (((_nTotalKills > 0) && ((_isaconsumer) || (_isafungus))) || (_isenhanced)) {
+				if (((_nTotalKills > 0) && ((_isaconsumer) || ((_isafungus) && (_isaconsumer = true)))) || (_isenhanced)) {
 				    if (useEnergy(Utils.EXPERIENCE_ENERGY_CONSUMPTION)) {
 					    // Get energy depending on segment length and relation between kills of both organisms
 					    takenEnergy = Utils.between(((_nTotalKills+12)/(org._nTotalKills+12))*(Math.sqrt(_m[seg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy);
@@ -14486,7 +13389,7 @@ public class Organism extends Rectangle {
 				        setColor(Color.LIGHT_GRAY);
 					}
 				}
-				if (((_nTotalKills > 0) && ((_isaconsumer) || (_isafungus))) || (_isenhanced)) {
+				if (((_nTotalKills > 0) && ((_isaconsumer) || ((_isafungus) && (_isaconsumer = true)))) || (_isenhanced)) {
 				    if (useEnergy(Utils.EXPERIENCE_ENERGY_CONSUMPTION)) {
 					    // Get energy depending on segment length and relation between kills of both organisms
 					    takenEnergy = Utils.between(((_nTotalKills+12)/(org._nTotalKills+12))*(Math.sqrt(_m[seg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy);
@@ -14507,7 +13410,7 @@ public class Organism extends Rectangle {
 						}
 			    	}
 				}
-				if (((_nTotalKills > 0) && ((_isaconsumer) || (_isafungus))) || (_isenhanced)) {
+				if (((_nTotalKills > 0) && ((_isaconsumer) || ((_isafungus) && (_isaconsumer = true)))) || (_isenhanced)) {
 					if (useEnergy(Utils.EXPERIENCE_ENERGY_CONSUMPTION)) {
 					    // Get energy depending on segment length and relation between kills of both organisms
 					    takenEnergy = Utils.between(((_nTotalKills+12)/(org._nTotalKills+12))*(Math.sqrt(_m[seg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy);
@@ -14529,7 +13432,7 @@ public class Organism extends Rectangle {
 					}
 				}
 				if ((org._isaplant) || (org._isenhanced) || (org._nTotalKills < _nTotalKills)) {
-					if (((_nTotalKills > 0) && ((_isaconsumer) || (_isafungus))) || (_isenhanced)) {
+					if (((_nTotalKills > 0) && ((_isaconsumer) || ((_isafungus) && (_isaconsumer = true)))) || (_isenhanced)) {
 					    if (useEnergy(Utils.EXPERIENCE_ENERGY_CONSUMPTION)) {
 						    // Get energy depending on segment length and relation between kills of both organisms
 						    takenEnergy = Utils.between(((_nTotalKills+12)/(org._nTotalKills+12))*(Math.sqrt(_m[seg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy);
@@ -14543,7 +13446,7 @@ public class Organism extends Rectangle {
 				break;
 			case SPIKEPOINT:
 				if (org._nTotalKills < _nTotalKills) {
-					if (((_nTotalKills > 0) && ((_isaconsumer) || (_isafungus))) || (_isenhanced)) {
+					if (((_nTotalKills > 0) && ((_isaconsumer) || ((_isafungus) && (_isaconsumer = true)))) || (_isenhanced)) {
 					    if (useEnergy(Utils.EXPERIENCE_ENERGY_CONSUMPTION)) {
 						    // Get energy depending on segment length and relation between kills of both organisms
 						    takenEnergy = Utils.between(((_nTotalKills+12)/(org._nTotalKills+12))*(Math.sqrt(_m[seg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy);
@@ -14564,7 +13467,7 @@ public class Organism extends Rectangle {
 				if (_altruist) {
 				break;
 				} else {
-					if (((_nTotalKills > 0) && ((_isaconsumer) || (_isafungus))) || (_isenhanced)) {
+					if (((_nTotalKills > 0) && ((_isaconsumer) || ((_isafungus) && (_isaconsumer = true)))) || (_isenhanced)) {
 						if ((org._dodge) && (org._framesColor <= 0) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
 							org.setColor(Utils.ColorTEAL);
 						    setColor(Utils.ColorGOLD);
@@ -14592,7 +13495,7 @@ public class Organism extends Rectangle {
 				if (_altruist) {
 				break;
 				} else {
-					if (((_nTotalKills > 0) && ((_isaconsumer) || (_isafungus))) || (_isenhanced)) {
+					if (((_nTotalKills > 0) && ((_isaconsumer) || ((_isafungus) && (_isaconsumer = true)))) || (_isenhanced)) {
 						if ((org._dodge) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
 							org.setColor(Utils.ColorTEAL);
 						    setColor(Utils.ColorGOLD);
@@ -14642,7 +13545,7 @@ public class Organism extends Rectangle {
 							}
 						}
 					}
-					if (((_nTotalKills > 0) && ((_isaconsumer) || (_isafungus))) || (_isenhanced)) {
+					if (((_nTotalKills > 0) && ((_isaconsumer) || ((_isafungus) && (_isaconsumer = true)))) || (_isenhanced)) {
 						if ((org._dodge) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
 							org.setColor(Utils.ColorTEAL);
 						    setColor(Utils.ColorGOLD);
@@ -14676,10 +13579,10 @@ public class Organism extends Rectangle {
 						}
 					}
 				}
-				if (((_nTotalKills > 0) && ((_isaconsumer) || (_isafungus))) || (_isenhanced)) {
+				if (((_nTotalKills > 0) && ((_isaconsumer) || ((_isafungus) && (_isaconsumer = true)))) || (_isenhanced)) {
 					if (org.useEnergy(Utils.BLUE_ENERGY_CONSUMPTION)) {
 						if (org._isenhanced) {
-						    useDetritus(Utils.between((0.5 * Math.sqrt(org._m[oseg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, _energy));
+						    useEnergy(Utils.between((0.5 * Math.sqrt(org._m[oseg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, _energy));
 							setColor(Utils.ColorDARKLILAC);
 							if (_energy < Utils.tol) {
 								die(org);
@@ -14745,45 +13648,28 @@ public class Organism extends Rectangle {
 				}
 				break;
 			case DARK:
-				if ((org._framesColor <= 7) && (org._blackversion > 0)) {
+				if ((org._framesColor <= 0) && (org._blackversion > 0)) {
 					// The other organism will be shown in the color it mimicks
 					org.mimicColor();
 				} else {
 					if ((org._infectedGeneticCode != _geneticCode) && (org._nTotalInfected < _nTotalInfected)) {
 						if ((org._isaplant) || (org._isaconsumer)) {
-							if ((org._dodge) && (org._blackversion == 0) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
-								if (org._isonlyc4 != 2) {
-									org._hasdodged =true;
-								} else {
-									if (((!org._isauburn) || (_hasgoodvision)) && (((!_isaplant) && (org._indigo == 0)) || (org._framesColor > 8))) {
-										org._hasdodged =true;
-									}
-								}
-								org.setColor(Utils.ColorTEAL);
-								setColor(Color.LIGHT_GRAY);
-							} else {
-								if (useEnergy(Utils.SILVER_ENERGY_CONSUMPTION)) {
-							        org.infectedBy(this);
-							        org.setColor(Utils.ColorBLOND);
-							        setColor(Color.LIGHT_GRAY);
-								}
+							if (useEnergy(Utils.SILVER_ENERGY_CONSUMPTION)) {
+						        org.infectedBy(this);
+						        org.setColor(Utils.ColorBLOND);
+						        setColor(Color.LIGHT_GRAY);
 							}
 						}
 					}
-					if (((_nTotalKills > 0) && ((_isaconsumer) || (_isafungus))) || (_isenhanced)) {
-						if ((org._dodge) && (org._blackversion == 0) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
-							org.setColor(Utils.ColorTEAL);
+					if (((_nTotalKills > 0) && ((_isaconsumer) || ((_isafungus) && (_isaconsumer = true)))) || (_isenhanced)) {
+					    if (useEnergy(Utils.EXPERIENCE_ENERGY_CONSUMPTION)) {
+						    // Get energy depending on segment length and relation between kills of both organisms
+						    takenEnergy = Utils.between(((_nTotalKills+12)/(org._nTotalKills+12))*(Math.sqrt(_m[seg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy);
+						    // The other organism will be shown in yellow
+						    org.setColor(Color.YELLOW);
+						    // This organism will be shown in gold
 						    setColor(Utils.ColorGOLD);
-						} else {
-							if (useEnergy(Utils.EXPERIENCE_ENERGY_CONSUMPTION)) {
-							    // Get energy depending on segment length and relation between kills of both organisms
-							    takenEnergy = Utils.between(((_nTotalKills+12)/(org._nTotalKills+12))*(Math.sqrt(_m[seg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy);
-							    // The other organism will be shown in yellow
-							    org.setColor(Color.YELLOW);
-							    // This organism will be shown in gold
-							    setColor(Utils.ColorGOLD);
-						    }
-						}
+					    }
 					}
 				}
 				break;
@@ -14799,7 +13685,7 @@ public class Organism extends Rectangle {
 						}
 					}
 				}
-				if (((_nTotalKills > 0) && ((_isaconsumer) || (_isafungus))) || (_isenhanced)) {
+				if (((_nTotalKills > 0) && ((_isaconsumer) || ((_isafungus) && (_isaconsumer = true)))) || (_isenhanced)) {
 				    if (useEnergy(Utils.EXPERIENCE_ENERGY_CONSUMPTION)) {
 					    // Get energy depending on segment length and relation between kills of both organisms
 					    takenEnergy = Utils.between(((_nTotalKills+12)/(org._nTotalKills+12))*(Math.sqrt(_m[seg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy);
@@ -14820,196 +13706,7 @@ public class Organism extends Rectangle {
 				org._energy -= takenEnergy;
 				_energy += takenEnergy;
 				takenEnergy = takenEnergy * Utils.ORGANIC_SUBS_PRODUCED;
-				useDetritus(takenEnergy);
-			}
-			break;
-		case DARKGRAY:
-			// Feed on non-adult organisms, if it has plankton segments
-			double takenEnergyDarkgray = 0;
-			if (org._hasdodged == false) {
-			    org._hasdodged =true;
-		    }
-			switch (getTypeColor(org._segColor[oseg])) {
-			case OLIVE:
-			case DARKOLIVE:
-			case SKY:
-			case DEEPSKY:
-			case OCHRE:
-			case LILAC:
-			case DARKLILAC:
-				if ((_mass > org._mass) && ((_growthRatio < org._growthRatio)
-						|| ((!org._isaconsumer) && (!org._isafungus) && (!org._isaplant) && (_growthRatio <= org._growthRatio))) && (org._isaplant)) {
-					// Get the total energy of the smaller organism
-					takenEnergyDarkgray = org._energy;
-					org._energy -= takenEnergyDarkgray;
-					_energy += takenEnergyDarkgray;
-					// This organism will be shown in plankton
-					setColor(Utils.ColorPLANKTON);
-				}
-				break;
-			case SPIKEPOINT:
-			case SPIKE:
-				if ((_mass > org._mass) && ((_growthRatio < org._growthRatio)
-						|| ((!org._isaconsumer) && (!org._isafungus) && (!org._isaplant) && (_growthRatio <= org._growthRatio))) && ((org._isaplant) || (org._isenhanced))) {
-					// Get the total energy of the smaller organism
-					takenEnergyDarkgray = org._energy;
-					org._energy -= takenEnergyDarkgray;
-					_energy += takenEnergyDarkgray;
-					// This organism will be shown in plankton
-					setColor(Utils.ColorPLANKTON);
-				}
-				break;
-			case BLUE:
-				if ((_mass > org._mass) && ((_growthRatio < org._growthRatio)
-						|| ((!org._isaconsumer) && (!org._isafungus) && (!org._isaplant) && (_growthRatio <= org._growthRatio)))) {
-					// If the other segment is blue, it acts as a shield
-					if (((!org._isaplant) || (org._framesColor <= 0)) && (org.useEnergy(Utils.BLUE_ENERGY_CONSUMPTION))) {
-						setColor(Utils.ColorPLANKTON);
-						org.setColor(Color.BLUE);
-					} else {
-						// Get the total energy of the smaller organism
-						takenEnergyDarkgray = org._energy;
-						org._energy -= takenEnergyDarkgray;
-						_energy += takenEnergyDarkgray;
-						// This organism will be shown in plankton
-						setColor(Utils.ColorPLANKTON);
-					}
-				}
-				break;
-			case LEAF:
-				if ((_mass > org._mass) && ((_growthRatio < org._growthRatio)
-						|| ((!org._isaconsumer) && (!org._isafungus) && (!org._isaplant) && (_growthRatio <= org._growthRatio)))) {
-					if ((org._dodge) && (org._canreact) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
-						org.setColor(Utils.ColorTEAL);
-						setColor(Utils.ColorPLANKTON);
-					} else {
-						if ((!org._modifiesleaf) || (org._framesColor > 0)) {
-							// Get the total energy of the smaller organism
-							takenEnergyDarkgray = org._energy;
-							org._energy -= takenEnergyDarkgray;
-							_energy += takenEnergyDarkgray;
-							// This organism will be shown in plankton
-							setColor(Utils.ColorPLANKTON);
-						} else {
-							// The other organism will be shown in light blue
-							org.setColortwoFrames(Utils.ColorLIGHT_BLUE);
-							setColor(Utils.ColorPLANKTON);
-						}
-					}
-				}
-				break;
-			case PLANKTON:
-		    case GREEN:
-		    case GRASS:
-			case FOREST:
-			case SPRING:
-			case SUMMER:
-            case WINTER:
-			case LIME:
-			case C4:
-			case JADE:
-			case DARKJADE:
-			case DARKGREEN:
-			case PURPLE:
-			case TEAL:
-			case CYAN:
-			case SPIN:
-			case YELLOW:
-			case AUBURN:
-			case INDIGO:
-			case BLOND:
-			case FLOWER:
-			case DARKGRAY:
-			case GOLD:
-			case SPORE:
-				if ((_mass > org._mass) && ((_growthRatio < org._growthRatio)
-						|| ((!org._isaconsumer) && (!org._isafungus) && (!org._isaplant) && (_growthRatio <= org._growthRatio)))) {
-					if ((org._dodge) && (org._canreact) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
-						org.setColor(Utils.ColorTEAL);
-						setColor(Utils.ColorPLANKTON);
-					} else {
-						// Get the total energy of the smaller organism
-						takenEnergyDarkgray = org._energy;
-						org._energy -= takenEnergyDarkgray;
-						_energy += takenEnergyDarkgray;
-						// This organism will be shown in plankton
-						setColor(Utils.ColorPLANKTON);
-					}
-				}
-				break;
-			case LAVENDER:
-				if (_altruist) {
-			    break;
-				} else {
-					if ((_mass > org._mass) && ((_growthRatio < org._growthRatio)
-							|| ((!org._isaconsumer) && (!org._isafungus) && (!org._isaplant) && (_growthRatio <= org._growthRatio)))) {
-						if ((org._dodge) && (org._canreact) && (org._framesColor <= 0) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
-							org.setColor(Utils.ColorTEAL);
-							setColor(Utils.ColorPLANKTON);
-						} else {
-							// Get the total energy of the smaller organism
-							takenEnergyDarkgray = org._energy;
-							org._energy -= takenEnergyDarkgray;
-							_energy += takenEnergyDarkgray;
-							// This organism will be shown in plankton
-							setColor(Utils.ColorPLANKTON);
-						}
-					}
-				}
-				break;
-			case MINT:
-			case MAGENTA:
-			case ROSE:
-				if (_altruist) {
-		        break;
-				} else {
-					if ((_mass > org._mass) && ((_growthRatio < org._growthRatio)
-							|| ((!org._isaconsumer) && (!org._isafungus) && (!org._isaplant) && (_growthRatio <= org._growthRatio)))) {
-						if ((org._dodge) && (org._canreact) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
-							org.setColor(Utils.ColorTEAL);
-							setColor(Utils.ColorPLANKTON);
-						} else {
-							// Get the total energy of the smaller organism
-							takenEnergyDarkgray = org._energy;
-							org._energy -= takenEnergyDarkgray;
-							_energy += takenEnergyDarkgray;
-							// This organism will be shown in plankton
-							setColor(Utils.ColorPLANKTON);
-						}
-					}
-				}
-				break;
-			case DARK:
-				if ((org._framesColor <= 7) && (org._blackversion > 0)) {
-					// The other organism will be shown in the color it mimicks
-					org.mimicColor();
-				} else {
-					if ((org._dodge) && (org._blackversion == 0) && (org._canreact) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
-						org.setColor(Utils.ColorTEAL);
-						setColor(Utils.ColorPLANKTON);
-					} else {
-						if ((_mass > org._mass) && ((_growthRatio < org._growthRatio)
-								|| ((!org._isaconsumer) && (!org._isafungus) && (!org._isaplant) && (_growthRatio <= org._growthRatio)))) {
-							// Get the total energy of the smaller organism
-							takenEnergyDarkgray = org._energy;
-							org._energy -= takenEnergyDarkgray;
-							_energy += takenEnergyDarkgray;
-							// This organism will be shown in plankton
-							setColor(Utils.ColorPLANKTON);
-						}
-					}
-				}
-				break;
-			default:
-				if ((_mass > org._mass) && ((_growthRatio < org._growthRatio)
-						|| ((!org._isaconsumer) && (!org._isafungus) && (!org._isaplant) && (_growthRatio <= org._growthRatio)))) {
-					// Get the total energy of the smaller organism
-					takenEnergyDarkgray = org._energy;
-					org._energy -= takenEnergyDarkgray;
-					_energy += takenEnergyDarkgray;
-					// This organism will be shown in plankton
-					setColor(Utils.ColorPLANKTON);
-				}
+				useEnergy(takenEnergy);
 			}
 			break;
 		case GRAY:
@@ -15077,7 +13774,7 @@ public class Organism extends Rectangle {
 	    		}
 				break;
 			case MAROON:
-				if ((org._healing > 0) && (org._framesColor <= 0) && (org.useEnergy(Utils.MAGENTA_ENERGY_CONSUMPTION))) {
+				if ((org._healing > 0) && (org._framesColor <= 0) && ((_isaconsumer) || (_isafungus)) && (org.useEnergy(Utils.MAGENTA_ENERGY_CONSUMPTION))) {
 				    org.setColor(Color.MAGENTA);
 				    setColor(Color.GRAY);
 				} else {
@@ -15122,7 +13819,6 @@ public class Organism extends Rectangle {
 					}
 				}
 				break;
-			case PLANKTON:
 			case GREEN:
 			case GRASS:
 			case FOREST:
@@ -15135,7 +13831,6 @@ public class Organism extends Rectangle {
 			case PURPLE:
 			case TEAL:
 			case CYAN:
-			case SPIN:
 			case YELLOW:
 			case AUBURN:
 			case INDIGO:
@@ -15165,7 +13860,7 @@ public class Organism extends Rectangle {
 					org.setColor(Utils.ColorTEAL);
 					setColor(Color.GRAY);
 				} else {
-					if ((!org._isgray) && (org.active)) {
+					if ((org._healing > 0) && ((!_isenhanced) || (_segmentpretoucheffects == 3)) && (org.active)) {
 						org._segColor[oseg] = Utils.ColorDARKJADE;
 				    	setColor(Color.GRAY);
 				    	org._useextraeffects =true;
@@ -15188,7 +13883,7 @@ public class Organism extends Rectangle {
 					org.setColor(Utils.ColorTEAL);
 					setColor(Color.GRAY);
 				} else {
-					if ((!org._isgray) && (org.active)) {
+					if ((org._healing > 0) && ((!_isenhanced) || (_segmentpretoucheffects == 3)) && (org.active)) {
 						org._segColor[oseg] = Utils.ColorDARKGREEN;
 				    	setColor(Color.GRAY);
 				    	org._useextraeffects =true;
@@ -15239,7 +13934,7 @@ public class Organism extends Rectangle {
 			case BLUE:
 				if (org.useEnergy(Utils.BLUE_ENERGY_CONSUMPTION)) {
 					if (org._isenhanced) {
-					    useDetritus(Utils.between((0.5 * Math.sqrt(org._m[oseg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, _energy));
+					    useEnergy(Utils.between((0.5 * Math.sqrt(org._m[oseg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, _energy));
 						setColor(Utils.ColorDARKLILAC);
 						if (_energy < Utils.tol) {
 							die(org);
@@ -15263,7 +13958,7 @@ public class Organism extends Rectangle {
 				break;
 			case SKY:
 				if ((org._skyversion == 2) || (org._isaplant)) {
-					if (org.useDetritus(Utils.SKY_ENERGY_CONSUMPTION)) {
+					if (org.useEnergy(Utils.SKY_ENERGY_CONSUMPTION)) {
 						org._segColor[oseg] = Utils.ColorDEEPSKY;
 						org._mphoto[oseg] = -20;
 						org._useextraeffects = true;
@@ -15495,23 +14190,18 @@ public class Organism extends Rectangle {
 				}
 				break;
 			case DARK:
-				if ((org._framesColor <= 7) && (org._blackversion > 0)) {
+				if ((org._framesColor <= 0) && (org._blackversion > 0)) {
 					// The other organism will be shown in the color it mimicks
 					org.mimicColor();
 				} else {
-					if ((org._dodge) && (org._blackversion == 0) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
-						org.setColor(Utils.ColorTEAL);
-						setColor(Color.GRAY);
+					if ((org._healing > 0) && ((!org._isgray) || ((!org._isaconsumer) && (!org._isafungus))) && (org.active)) {
+						if (useEnergy(Utils.GRAY_ENERGY_CONSUMPTION)) {
+							org.survive(this);
+						}
 					} else {
-						if ((org._healing > 0) && ((!org._isgray) || ((!org._isaconsumer) && (!org._isafungus))) && (org.active)) {
-							if (useEnergy(Utils.GRAY_ENERGY_CONSUMPTION)) {
-								org.survive(this);
-							}
-						} else {
-							if (useEnergy(Utils.GRAY_ENERGY_CONSUMPTION)) {
-								org.die(this);
-								setColor(Color.GRAY);
-							}
+						if (useEnergy(Utils.GRAY_ENERGY_CONSUMPTION)) {
+							org.die(this);
+							setColor(Color.GRAY);
 						}
 					}
 				}
@@ -15593,7 +14283,7 @@ public class Organism extends Rectangle {
 				break;
 			case SILVER:
 				if (org._infectedGeneticCode != _geneticCode) {
-					if ((org._isaplant) || (org._isaconsumer) || ((org._isafungus) && (org._nTotalKills > 0))) {
+					if ((org._isaplant) || (org._isaconsumer)) {
 						if ((org._isenhanced) || (_nTotalInfected >= org._nTotalInfected)) {
 							if (_isaplant) {
 								if (useEnergy(Utils.WHITE_ENERGY_CONSUMPTION)) {
@@ -15743,11 +14433,9 @@ public class Organism extends Rectangle {
 				}
 				break;
 			case DARKGREEN:
-			case PLANKTON:
 			case PURPLE:
 			case TEAL:
 			case CYAN:
-			case SPIN:
 			case YELLOW:
 			case AUBURN:
 			case BLOND:
@@ -15831,7 +14519,7 @@ public class Organism extends Rectangle {
 					if ((org._isaplant) || (org._isaconsumer)) {
 				        if (org.useEnergy(Utils.BLUE_ENERGY_CONSUMPTION)) {
 				        	if (org._isenhanced) {
-							    useDetritus(Utils.between((0.5 * Math.sqrt(org._m[oseg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, _energy));
+							    useEnergy(Utils.between((0.5 * Math.sqrt(org._m[oseg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, _energy));
 								setColor(Utils.ColorDARKLILAC);
 								if (_energy < Utils.tol) {
 									die(org);
@@ -15888,7 +14576,7 @@ public class Organism extends Rectangle {
 				if ((((org._skyversion == 2) || (_isaplant) || (_isaconsumer) || (_isafungus)) && ((!_isfrozen) || (_healing > 0)))
 						|| ((_isenhanced) && (org._isaplant) && (!_isakiller) && (org._antiviral == 0))) {
 					if ((org._isaplant) || ((org._isaconsumer) && (org._skyversion == 2))) {
-						if (org.useDetritus(Utils.SKY_ENERGY_CONSUMPTION)) {
+						if (org.useEnergy(Utils.SKY_ENERGY_CONSUMPTION)) {
 							org._segColor[oseg] = Utils.ColorDEEPSKY;
 							org._mphoto[oseg] = -20;
 							org._useextraeffects = true;
@@ -16222,28 +14910,24 @@ public class Organism extends Rectangle {
 				}
 				break;
 			case DARK:
-				if (org._blackversion == 0) {
-					break;
+				if ((org._framesColor <= 0) && (org._blackversion > 0)) {
+					// The other organism will be shown in the color it mimicks
+					org.mimicColor();
 				} else {
-					if ((org._framesColor <= 7) && (org._blackversion > 0)) {
-						// The other organism will be shown in the color it mimicks
-						org.mimicColor();
-					} else {
-						if (org._infectedGeneticCode != _geneticCode) {
-							if ((org._isaplant) || (org._isaconsumer)) {
-							    if (_isaplant) {
-							    	if (useEnergy(Utils.WHITE_ENERGY_CONSUMPTION)) {
-								        org.infectedBy(this);
-								        org.setColor(Utils.ColorBLOND);
-								        setColor(Color.WHITE);
-							    	}
-							    } else {
-							    	if (useEnergy(Utils.VIRUS_ENERGY_CONSUMPTION)) {
-								        org.infectedBy(this);
-							            org.setColor(Utils.ColorLIGHTBROWN);
-							            setColor(Color.WHITE);
-							        }
-								}
+					if (org._infectedGeneticCode != _geneticCode) {
+						if ((org._isaplant) || (org._isaconsumer)) {
+						    if (_isaplant) {
+						    	if (useEnergy(Utils.WHITE_ENERGY_CONSUMPTION)) {
+							        org.infectedBy(this);
+							        org.setColor(Utils.ColorBLOND);
+							        setColor(Color.WHITE);
+						    	}
+						    } else {
+						    	if (useEnergy(Utils.VIRUS_ENERGY_CONSUMPTION)) {
+							        org.infectedBy(this);
+						            org.setColor(Utils.ColorLIGHTBROWN);
+						            setColor(Color.WHITE);
+						        }
 							}
 						}
 					}
@@ -16279,944 +14963,6 @@ public class Organism extends Rectangle {
 						}
 					}
 				}
-			}
-			break;
-		case PLAGUE:
-			// Force reproduction of infected victims
-			switch (getTypeColor(org._segColor[oseg])) {
-			case WHITE:
-			case PLAGUE:
-				if (((org._infectedGeneticCode == _geneticCode) || ((!_isinfectious) && (org._infectedGeneticCode != null))) && (org._isinfectious)) {
-					if ((((_plagueversion == 2) || (!_isinfectious)) && (org._isaconsumer)) || ((_plagueversion == 1) && (org._isaplant))) {
-						if (org._lavender > 0) {
-							if ((_isenhanced) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
-								org.weaklavendershield();
-							} else {
-								org.lavendershield();
-							}
-							setColor(Utils.ColorPLAGUE);
-						}
-						if (org._lavender <= 0) {
-							if (_isinfectious) {
-								if (_isaplant) {
-									if (_energy > Utils.PLAGUE_ENERGY_CONSUMPTION) {
-								        org.reproduceVirus();
-								        setColor(Utils.ColorPLAGUE);
-									}
-								} else {
-									if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
-							            org.reproduceVirus();
-							            setColor(Utils.ColorPLAGUE);
-						            }
-								}
-							} else {
-								if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
-									if ((!_isaconsumer) && (!_isafungus)) {
-										org._nVirusChildren = -1;
-									}
-						            org.reproduceforeignVirus();
-						            setColor(Utils.ColorPLAGUE);
-					            }
-							}
-						}
-					}
-				}
-				if ((org._indigo > 0) && (!org._isaplant) && (!org._isaconsumer) && (!org._isafungus) && (!_hasgoodvision)) {
-					if ((_isaplant) && (_isinfectious)) {
-						if (useEnergy((Utils.PLAGUE_ENERGY_CONSUMPTION + 0.01)/Utils.INDIGO_ENERGY_CONSUMPTION)) {
-				    	    org.setColor(Utils.ColorINDIGO);
-				    	    setColor(Utils.ColorPLAGUE);
-						}
-				    } else {
-				    	if ((_indigo == 0) || (_isaplant) || (_isaconsumer) || (_isafungus)) {
-				    		if (useEnergy((Utils.SCOURGE_ENERGY_CONSUMPTION + 0.1)/Utils.INDIGO_ENERGY_CONSUMPTION)) {
-				    			org.setColor(Utils.ColorINDIGO);
-				    			setColor(Utils.ColorPLAGUE);
-				    		}
-				    	}
-				    }
-				}
-				break;
-			case SILVER:
-				if ((org._infectedGeneticCode == _geneticCode) || ((!_isinfectious) && (org._infectedGeneticCode != null))) {
-					if ((org._isenhanced) || (_nTotalInfected >= org._nTotalInfected)) {
-						if ((((_plagueversion == 2) || (!_isinfectious)) && (org._isaconsumer)) || ((_plagueversion == 1) && (org._isaplant))) {
-							if (org._lavender > 0) {
-								if ((_isenhanced) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
-									org.weaklavendershield();
-								} else {
-									org.lavendershield();
-								}
-								setColor(Utils.ColorPLAGUE);
-							}
-							if (org._lavender <= 0) {
-								if (_isinfectious) {
-									if (_isaplant) {
-										if (_energy > Utils.PLAGUE_ENERGY_CONSUMPTION) {
-									        org.reproduceVirus();
-									        setColor(Utils.ColorPLAGUE);
-										}
-									} else {
-										if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
-								            org.reproduceVirus();
-								            setColor(Utils.ColorPLAGUE);
-							            }
-									}
-								} else {
-									if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
-										if ((!_isaconsumer) && (!_isafungus)) {
-											org._nVirusChildren = -1;
-										}
-							            org.reproduceforeignVirus();
-							            setColor(Utils.ColorPLAGUE);
-						            }
-								}
-							}
-						}
-					}
-				}
-				if ((org._indigo > 0) && (!org._isaplant) && (!org._isaconsumer) && (!org._isafungus) && (!_hasgoodvision)) {
-					if ((_isaplant) && (_isinfectious)) {
-						if (useEnergy((Utils.PLAGUE_ENERGY_CONSUMPTION + 0.01)/Utils.INDIGO_ENERGY_CONSUMPTION)) {
-				    	    org.setColor(Utils.ColorINDIGO);
-				    	    setColor(Utils.ColorPLAGUE);
-						}
-				    } else {
-				    	if ((_indigo == 0) || (_isaplant) || (_isaconsumer) || (_isafungus)) {
-				    		if (useEnergy((Utils.SCOURGE_ENERGY_CONSUMPTION + 0.1)/Utils.INDIGO_ENERGY_CONSUMPTION)) {
-				    			org.setColor(Utils.ColorINDIGO);
-				    			setColor(Utils.ColorPLAGUE);
-				    		}
-				    	}
-				    }
-				}
-				break;
-			case INDIGO:
-				if ((((_plagueversion == 2) || (!_isinfectious)) && (org._isaconsumer)) || ((_plagueversion == 1) && (org._isaplant))
-						|| ((!org._isaplant) && (!org._isaconsumer) && (!org._isafungus))) {
-					if (!_hasgoodvision) {
-						if ((_isaplant) && (_isinfectious)) {
-							if (useEnergy((Utils.PLAGUE_ENERGY_CONSUMPTION + 0.01)/Utils.INDIGO_ENERGY_CONSUMPTION)) {
-					    	    org.setColor(Utils.ColorINDIGO);
-					    	    setColor(Utils.ColorPLAGUE);
-							}
-					    } else {
-					    	if ((_indigo == 0) || (_isaplant) || (_isaconsumer) || (_isafungus)) {
-					    		if (useEnergy((Utils.SCOURGE_ENERGY_CONSUMPTION + 0.1)/Utils.INDIGO_ENERGY_CONSUMPTION)) {
-					    			org.setColor(Utils.ColorINDIGO);
-					    			setColor(Utils.ColorPLAGUE);
-					    		}
-					    	}
-					    }
-					}
-					if ((org._antiviral > 0) && (_isinfectious)) {
-		    			virusneutralized();
-					}
-				}
-				break;
-			case LEAF:
-				if ((org._infectedGeneticCode == _geneticCode) || ((!_isinfectious) && (org._infectedGeneticCode != null))) {
-					if (_plagueversion == 1) {
-						if ((org._dodge) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
-							org.setColor(Utils.ColorTEAL);
-							setColor(Utils.ColorPLAGUE);
-							org._hasdodged =true;
-						} else {
-							if ((!org._modifiesleaf) || (org._framesColor > 0)) {
-								if (org._lavender > 0) {
-									if ((_isenhanced) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
-										org.weaklavendershield();
-									} else {
-										org.lavendershield();
-									}
-									setColor(Utils.ColorPLAGUE);
-								}
-								if (org._lavender <= 0) {
-									if (org._jadefactor > 1) {
-										if (org._segColor[oseg].equals(Utils.ColorJADE)) {
-							    			org._segColor[oseg] = Utils.ColorDARKJADE;
-							    		} else {
-							    			org._segColor[oseg] = Utils.ColorDARKGREEN;
-							    		}
-							    		setColor(Utils.ColorPLAGUE);
-										org._hasdodged =true;
-										org._useextraeffects =true;
-										if ((org._antiviral > 0) && (_isinfectious)) {
-							    			virusneutralized();
-										}
-							    	} else {
-							    		if (_isinfectious) {
-											if (_isaplant) {
-												if (_energy > Utils.PLAGUE_ENERGY_CONSUMPTION) {
-											        org.reproduceVirus();
-											        setColor(Utils.ColorPLAGUE);
-												}
-											} else {
-												if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
-										            org.reproduceVirus();
-										            setColor(Utils.ColorPLAGUE);
-									            }
-											}
-										} else {
-											if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
-												if ((!_isaconsumer) && (!_isafungus)) {
-													org._nVirusChildren = -1;
-												}
-									            org.reproduceforeignVirus();
-									            setColor(Utils.ColorPLAGUE);
-								            }
-										}
-							    	}
-								}
-							} else {
-								// The other organism will be shown in light blue
-								org.setColortwoFrames(Utils.ColorLIGHT_BLUE);
-								setColor(Utils.ColorPLAGUE);
-							}
-						}
-					}
-				}
-				break;
-			case GREEN:
-			case GRASS:
-			case FOREST:
-			case SPRING:
-			case SUMMER:
-            case WINTER:
-			case LIME:
-			case C4:
-			case JADE:
-			case DARKJADE:
-				if ((org._infectedGeneticCode == _geneticCode) || ((!_isinfectious) && (org._infectedGeneticCode != null))) {
-					if (_plagueversion == 1) {
-						if ((org._dodge) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
-							org.setColor(Utils.ColorTEAL);
-							setColor(Utils.ColorPLAGUE);
-							org._hasdodged =true;
-						} else {
-							if (org._lavender > 0) {
-								if ((_isenhanced) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
-									org.weaklavendershield();
-								} else {
-									org.lavendershield();
-								}
-								setColor(Utils.ColorPLAGUE);
-							}
-							if (org._lavender <= 0) {
-								if (org._jadefactor > 1) {
-									if (org._segColor[oseg].equals(Utils.ColorJADE)) {
-						    			org._segColor[oseg] = Utils.ColorDARKJADE;
-						    		} else {
-						    			org._segColor[oseg] = Utils.ColorDARKGREEN;
-						    		}
-						    		setColor(Utils.ColorPLAGUE);
-									org._hasdodged =true;
-									org._useextraeffects =true;
-									if ((org._antiviral > 0) && (_isinfectious)) {
-						    			virusneutralized();
-									}
-						    	} else {
-						    		if (_isinfectious) {
-										if (_isaplant) {
-											if (_energy > Utils.PLAGUE_ENERGY_CONSUMPTION) {
-										        org.reproduceVirus();
-										        setColor(Utils.ColorPLAGUE);
-											}
-										} else {
-											if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
-									            org.reproduceVirus();
-									            setColor(Utils.ColorPLAGUE);
-								            }
-										}
-									} else {
-										if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
-											if ((!_isaconsumer) && (!_isafungus)) {
-												org._nVirusChildren = -1;
-											}
-								            org.reproduceforeignVirus();
-								            setColor(Utils.ColorPLAGUE);
-							            }
-									}
-						    	}
-							}
-						}
-					}
-				}
-				break;
-			case DARKGREEN:
-			case PLANKTON:
-			case PURPLE:
-				if ((org._infectedGeneticCode == _geneticCode) || ((!_isinfectious) && (org._infectedGeneticCode != null))) {
-					if (_plagueversion == 1) {
-						if ((org._dodge) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
-							org.setColor(Utils.ColorTEAL);
-							setColor(Utils.ColorPLAGUE);
-							org._hasdodged =true;
-						} else {
-							if (org._lavender > 0) {
-								if ((_isenhanced) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
-									org.weaklavendershield();
-								} else {
-									org.lavendershield();
-								}
-								setColor(Utils.ColorPLAGUE);
-							}
-							if (org._lavender <= 0) {
-								if (_isinfectious) {
-									if (_isaplant) {
-										if (_energy > Utils.PLAGUE_ENERGY_CONSUMPTION) {
-									        org.reproduceVirus();
-									        setColor(Utils.ColorPLAGUE);
-										}
-									} else {
-										if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
-								            org.reproduceVirus();
-								            setColor(Utils.ColorPLAGUE);
-							            }
-									}
-								} else {
-									if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
-										if ((!_isaconsumer) && (!_isafungus)) {
-											org._nVirusChildren = -1;
-										}
-							            org.reproduceforeignVirus();
-							            setColor(Utils.ColorPLAGUE);
-						            }
-								}
-							}
-						}
-					}
-				}
-				break;
-			case BLUE:
-				if ((org._infectedGeneticCode == _geneticCode) || ((!_isinfectious) && (org._infectedGeneticCode != null))) {
-					if ((_plagueversion == 1) && (org._isaplant)) {
-				        if (org.useEnergy(Utils.BLUE_ENERGY_CONSUMPTION)) {
-				        	if (org._isenhanced) {
-							    useDetritus(Utils.between((0.5 * Math.sqrt(org._m[oseg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, _energy));
-								setColor(Utils.ColorDARKLILAC);
-								if (_energy < Utils.tol) {
-									die(org);
-								}
-							} else {
-								setColor(Utils.ColorPLAGUE);
-							}
-					        org.setColor(Color.BLUE);
-				        } else {
-				        	if (org._lavender > 0) {
-				        		if ((_isenhanced) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
-									org.weaklavendershield();
-								} else {
-									org.lavendershield();
-								}
-								setColor(Utils.ColorPLAGUE);
-							}
-							if (org._lavender <= 0) {
-								if (_isinfectious) {
-									if (_isaplant) {
-										if (_energy > Utils.PLAGUE_ENERGY_CONSUMPTION) {
-									        org.reproduceVirus();
-									        setColor(Utils.ColorPLAGUE);
-										}
-									} else {
-										if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
-								            org.reproduceVirus();
-								            setColor(Utils.ColorPLAGUE);
-							            }
-									}
-								} else {
-									if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
-										if ((!_isaconsumer) && (!_isafungus)) {
-											org._nVirusChildren = -1;
-										}
-							            org.reproduceforeignVirus();
-							            setColor(Utils.ColorPLAGUE);
-						            }
-								}
-							}
-				        }
-					}
-				}
-				break;
-			case OCHRE:
-			case BARK:
-			case OLDBARK:
-				if ((org._infectedGeneticCode == _geneticCode) || ((!_isinfectious) && (org._infectedGeneticCode != null))) {
-					if ((_plagueversion == 1) && (org._isaplant)) {
-						if (org._lavender > 0) {
-							if ((_isenhanced) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
-								org.weaklavendershield();
-							} else {
-								org.lavendershield();
-							}
-							setColor(Utils.ColorPLAGUE);
-						}
-						if (org._lavender <= 0) {
-							if (_isinfectious) {
-								if (_isaplant) {
-									if (_energy > Utils.PLAGUE_ENERGY_CONSUMPTION) {
-								        org.reproduceVirus();
-								        setColor(Utils.ColorPLAGUE);
-									}
-								} else {
-									if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
-							            org.reproduceVirus();
-							            setColor(Utils.ColorPLAGUE);
-						            }
-								}
-							} else {
-								if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
-									if ((!_isaconsumer) && (!_isafungus)) {
-										org._nVirusChildren = -1;
-									}
-						            org.reproduceforeignVirus();
-						            setColor(Utils.ColorPLAGUE);
-					            }
-							}
-						}
-					}
-				}
-				break;
-			case SKY:
-			case DEEPSKY:
-			case FALLOW:
-				if (((org._infectedGeneticCode == _geneticCode) && (_isenhanced)) || ((!_isinfectious) && (org._infectedGeneticCode != null))) {
-					if ((_plagueversion == 1) && (org._isaplant) && (org._createlavender == 0)) {
-						if (org._lavender > 0) {
-							if ((_isenhanced) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
-								org.weaklavendershield();
-							} else {
-								org.lavendershield();
-							}
-							setColor(Utils.ColorPLAGUE);
-						}
-						if (org._lavender <= 0) {
-							if (_isinfectious) {
-								if (_isaplant) {
-									if (_energy > Utils.PLAGUE_ENERGY_CONSUMPTION) {
-								        org.reproduceVirus();
-								        setColor(Utils.ColorPLAGUE);
-									}
-								} else {
-									if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
-							            org.reproduceVirus();
-							            setColor(Utils.ColorPLAGUE);
-						            }
-								}
-							} else {
-								if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
-									if ((!_isaconsumer) && (!_isafungus)) {
-										org._nVirusChildren = -1;
-									}
-						            org.reproduceforeignVirus();
-						            setColor(Utils.ColorPLAGUE);
-					            }
-							}
-						}
-					}
-				}
-				break;
-			case OLIVE:
-				if ((!_isinfectious) && (!_isaconsumer) && (!_isafungus) && (org._infectedGeneticCode != null)) {
-					if ((_plagueversion == 1) && (org._isaplant) && (org._createlavender == 0)) {
-						if (org._lavender > 0) {
-							if ((_isenhanced) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
-								org.weaklavendershield();
-							} else {
-								org.lavendershield();
-							}
-							setColor(Utils.ColorPLAGUE);
-						}
-						if (org._lavender <= 0) {
-							if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
-								if ((!_isaconsumer) && (!_isafungus)) {
-									org._nVirusChildren = -1;
-								}
-					            org.reproduceforeignVirus();
-					            setColor(Utils.ColorPLAGUE);
-				            }
-						}
-					}
-				}
-				break;
-			case MAROON:
-			case CRIMSON:
-			case ORANGE:
-			case FIRE:
-				if ((org._infectedGeneticCode == _geneticCode) || ((!_isinfectious) && (org._infectedGeneticCode != null))) {
-					if ((_plagueversion == 2) || (!_isinfectious)) {
-						if (org._lavender > 0) {
-							if ((_isenhanced) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
-								org.weaklavendershield();
-							} else {
-								org.lavendershield();
-							}
-							setColor(Utils.ColorPLAGUE);
-						}
-						if (org._lavender <= 0) {
-							if (_isinfectious) {
-								if (_isaplant) {
-									if (_energy > Utils.PLAGUE_ENERGY_CONSUMPTION) {
-								        org.reproduceVirus();
-								        setColor(Utils.ColorPLAGUE);
-									}
-								} else {
-									if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
-							            org.reproduceVirus();
-							            setColor(Utils.ColorPLAGUE);
-						            }
-								}
-							} else {
-								if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
-									if ((!_isaconsumer) && (!_isafungus)) {
-										org._nVirusChildren = -1;
-									}
-						            org.reproduceforeignVirus();
-						            setColor(Utils.ColorPLAGUE);
-					            }
-							}
-						}
-					}
-				}
-				break;
-			case RED:
-			case CREAM:
-				if (((org._infectedGeneticCode == _geneticCode) && (_isenhanced)) || ((!_isinfectious) && (org._infectedGeneticCode != null))) {
-					if (((_plagueversion == 2) || (!_isinfectious)) && (org._createlavender == 0)) {
-						if (org._lavender > 0) {
-							if ((_isenhanced) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
-								org.weaklavendershield();
-							} else {
-								org.lavendershield();
-							}
-							setColor(Utils.ColorPLAGUE);
-						}
-						if (org._lavender <= 0) {
-							if (_isinfectious) {
-								if (_isaplant) {
-									if (_energy > Utils.PLAGUE_ENERGY_CONSUMPTION) {
-								        org.reproduceVirus();
-								        setColor(Utils.ColorPLAGUE);
-									}
-								} else {
-									if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
-							            org.reproduceVirus();
-							            setColor(Utils.ColorPLAGUE);
-						            }
-								}
-							} else {
-								if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
-									if ((!_isaconsumer) && (!_isafungus)) {
-										org._nVirusChildren = -1;
-									}
-						            org.reproduceforeignVirus();
-						            setColor(Utils.ColorPLAGUE);
-					            }
-							}
-						}
-					}
-				}
-				break;
-			case PINK:
-				if (((org._infectedGeneticCode == _geneticCode) && ((org._modifiespink) || ((_isauburn) && (!_isaplant) && (!_isaconsumer) && (!_isafungus))))
-						|| ((!_isinfectious) && (org._infectedGeneticCode != null))) {
-					if ((_plagueversion == 2) || (!_isinfectious)) {
-						if (org._lavender > 0) {
-							if ((_isenhanced) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
-								org.weaklavendershield();
-							} else {
-								org.lavendershield();
-							}
-							setColor(Utils.ColorPLAGUE);
-						}
-						if (org._lavender <= 0) {
-							if (_isinfectious) {
-								if (_isaplant) {
-									if (_energy > Utils.PLAGUE_ENERGY_CONSUMPTION) {
-								        org.reproduceVirus();
-								        setColor(Utils.ColorPLAGUE);
-									}
-								} else {
-									if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
-							            org.reproduceVirus();
-							            setColor(Utils.ColorPLAGUE);
-						            }
-								}
-							} else {
-								if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
-									if ((!_isaconsumer) && (!_isafungus)) {
-										org._nVirusChildren = -1;
-									}
-						            org.reproduceforeignVirus();
-						            setColor(Utils.ColorPLAGUE);
-					            }
-							}
-						}
-					}
-				}
-				break;
-			case SPIKE:
-				if ((org._isaplant) || (org._isenhanced)) {
-					if ((org._infectedGeneticCode == _geneticCode) || ((!_isinfectious) && (org._infectedGeneticCode != null))) {
-						if ((((_plagueversion == 2) || (!_isinfectious)) && (org._isaconsumer)) || ((_plagueversion == 1) && (org._isaplant))) {
-							if (org._lavender > 0) {
-								if ((_isenhanced) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
-									org.weaklavendershield();
-								} else {
-									org.lavendershield();
-								}
-								setColor(Utils.ColorPLAGUE);
-							}
-							if (org._lavender <= 0) {
-								if (_isinfectious) {
-									if (_isaplant) {
-										if (_energy > Utils.PLAGUE_ENERGY_CONSUMPTION) {
-									        org.reproduceVirus();
-									        setColor(Utils.ColorPLAGUE);
-										}
-									} else {
-										if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
-								            org.reproduceVirus();
-								            setColor(Utils.ColorPLAGUE);
-							            }
-									}
-								} else {
-									if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
-										if ((!_isaconsumer) && (!_isafungus)) {
-											org._nVirusChildren = -1;
-										}
-							            org.reproduceforeignVirus();
-							            setColor(Utils.ColorPLAGUE);
-						            }
-								}
-							}
-						}
-					}
-				}
-				break;
-			case LAVENDER:
-				if ((org._isaconsumer) || (org._isaplant)) {
-					if (org._isenhanced) {
-						useEnergy(Utils.between((1/Utils.LAVENDER_ENERGY_CONSUMPTION), 0, _energy));
-						if (org._lavender < Utils.LAVENDER_SHIELD) {
-							org._lavender += 1000;
-							if (org._lavender >= Utils.LAVENDER_SHIELD) {
-								org._lavender = Utils.LAVENDER_SHIELD;
-							}
-						}
-					} else {
-						useEnergy(Utils.between((0.2/Utils.LAVENDER_ENERGY_CONSUMPTION), 0, _energy));
-						if (org._lavender < Utils.LAVENDER_SHIELD) {
-							org._lavender += 200;
-							if (org._lavender >= Utils.LAVENDER_SHIELD) {
-								org._lavender = Utils.LAVENDER_SHIELD;
-							}
-						}
-					}
-					if (org._infectedGeneticCode == _geneticCode) {
-						org._infectedGeneticCode = null;
-						org._savedGeneticCode = null;
-					}
-					// The other organism will be shown in lavender
-					org.setColor(Utils.ColorLAVENDER);
-					// This organism will be shown in deadbark
-					setColor(Utils.ColorDEADBARK);
-					org._hasdodged =true;
-					if (_energy < Utils.tol) {
-						die(org);
-					}
-				}
-				break;
-			case SPORE:
-				if ((org._infectedGeneticCode == _geneticCode) || ((!_isinfectious) && (org._infectedGeneticCode != null))) {
-					if ((((_plagueversion == 2) || (!_isinfectious)) && (org._isaconsumer)) || ((_plagueversion == 1) && (org._isaplant))) {
-						if ((org._sporeversion >= 1) && (org._isaconsumer)) {
-							if ((org._dodge) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
-								org.setColor(Utils.ColorTEAL);
-								setColor(Utils.ColorPLAGUE);
-								org._hasdodged =true;
-							} else {
-								if (org._lavender > 0) {
-									if ((_isenhanced) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
-										org.weaklavendershield();
-									} else {
-										org.lavendershield();
-									}
-									setColor(Utils.ColorPLAGUE);
-								}
-								if (org._lavender <= 0) {
-									if (_isinfectious) {
-										if (_isaplant) {
-											if (_energy > Utils.PLAGUE_ENERGY_CONSUMPTION) {
-										        org.reproduceVirus();
-										        setColor(Utils.ColorPLAGUE);
-											}
-										} else {
-											if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
-									            org.reproduceVirus();
-									            setColor(Utils.ColorPLAGUE);
-								            }
-										}
-									} else {
-										if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
-											if ((!_isaconsumer) && (!_isafungus)) {
-												org._nVirusChildren = -1;
-											}
-								            org.reproduceforeignVirus();
-								            setColor(Utils.ColorPLAGUE);
-							            }
-									}
-								}
-							}
-						} else {
-							setColor(Utils.ColorPLAGUE);
-							org.setColor(Utils.ColorSPORE);
-						}
-					}
-				}
-				break;
-			case CYAN:
-			case TEAL:
-			case SPIN:
-			case YELLOW:
-			case AUBURN:
-			case BLOND:
-			case FLOWER:
-			case DARKGRAY:
-			case GOLD:
-				if ((org._infectedGeneticCode == _geneticCode) || ((!_isinfectious) && (org._infectedGeneticCode != null))) {
-					if ((((_plagueversion == 2) || (!_isinfectious)) && (org._isaconsumer)) || ((_plagueversion == 1) && (org._isaplant))) {
-						if ((org._dodge) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
-							org.setColor(Utils.ColorTEAL);
-							setColor(Utils.ColorPLAGUE);
-							org._hasdodged =true;
-						} else {
-							if (org._lavender > 0) {
-								if ((_isenhanced) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
-									org.weaklavendershield();
-								} else {
-									org.lavendershield();
-								}
-								setColor(Utils.ColorPLAGUE);
-							}
-							if (org._lavender <= 0) {
-								if (_isinfectious) {
-									if (_isaplant) {
-										if (_energy > Utils.PLAGUE_ENERGY_CONSUMPTION) {
-									        org.reproduceVirus();
-									        setColor(Utils.ColorPLAGUE);
-										}
-									} else {
-										if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
-								            org.reproduceVirus();
-								            setColor(Utils.ColorPLAGUE);
-							            }
-									}
-								} else {
-									if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
-										if ((!_isaconsumer) && (!_isafungus)) {
-											org._nVirusChildren = -1;
-										}
-							            org.reproduceforeignVirus();
-							            setColor(Utils.ColorPLAGUE);
-						            }
-								}
-							}
-						}
-					}
-				}
-				break;
-			case MAGENTA:
-			case ROSE:
-				if (((org._infectedGeneticCode == _geneticCode) || ((!_isinfectious) && (org._infectedGeneticCode != null))) && (!_altruist)) {
-					if ((((_plagueversion == 2) || (!_isinfectious)) && (org._isaconsumer)) || ((_plagueversion == 1) && (org._isaplant))) {
-						if ((org._dodge) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
-							org.setColor(Utils.ColorTEAL);
-							setColor(Utils.ColorPLAGUE);
-							org._hasdodged =true;
-						} else {
-							if (org._lavender > 0) {
-								if ((_isenhanced) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
-									org.weaklavendershield();
-								} else {
-									org.lavendershield();
-								}
-								setColor(Utils.ColorPLAGUE);
-							}
-							if (org._lavender <= 0) {
-								if (_isinfectious) {
-									if (_isaplant) {
-										if (_energy > Utils.PLAGUE_ENERGY_CONSUMPTION) {
-									        org.reproduceVirus();
-									        setColor(Utils.ColorPLAGUE);
-										}
-									} else {
-										if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
-								            org.reproduceVirus();
-								            setColor(Utils.ColorPLAGUE);
-							            }
-									}
-								} else {
-									if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
-										if ((!_isaconsumer) && (!_isafungus)) {
-											org._nVirusChildren = -1;
-										}
-							            org.reproduceforeignVirus();
-							            setColor(Utils.ColorPLAGUE);
-						            }
-								}
-							}
-						}
-					}
-				}
-				break;
-			case SPIKEPOINT:
-				if (org._isenhanced) {
-					if ((org._infectedGeneticCode == _geneticCode) || ((!_isinfectious) && (org._infectedGeneticCode != null))) {
-						if ((((_plagueversion == 2) || (!_isinfectious)) && (org._isaconsumer)) || ((_plagueversion == 1) && (org._isaplant))) {
-							if (org._lavender > 0) {
-								if ((_isenhanced) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
-									org.weaklavendershield();
-								} else {
-									org.lavendershield();
-								}
-								setColor(Utils.ColorPLAGUE);
-							}
-							if (org._lavender <= 0) {
-								if (_isinfectious) {
-									if (_isaplant) {
-										if (_energy > Utils.PLAGUE_ENERGY_CONSUMPTION) {
-									        org.reproduceVirus();
-									        setColor(Utils.ColorPLAGUE);
-										}
-									} else {
-										if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
-								            org.reproduceVirus();
-								            setColor(Utils.ColorPLAGUE);
-							            }
-									}
-								} else {
-									if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
-										if ((!_isaconsumer) && (!_isafungus)) {
-											org._nVirusChildren = -1;
-										}
-							            org.reproduceforeignVirus();
-							            setColor(Utils.ColorPLAGUE);
-						            }
-								}
-							}
-						}
-					}
-				}
-				break;
-			case DARK:
-				if (org._blackversion == 0) {
-					break;
-				} else {
-					if ((org._framesColor <= 7) && (org._blackversion > 0)) {
-						// The other organism will be shown in the color it mimicks
-						org.mimicColor();
-					} else {
-						if ((org._infectedGeneticCode == _geneticCode) || ((!_isinfectious) && (org._infectedGeneticCode != null))) {
-							if ((((_plagueversion == 2) || (!_isinfectious)) && (org._isaconsumer)) || ((_plagueversion == 1) && (org._isaplant))) {
-								if (org._lavender > 0) {
-									if ((_isenhanced) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
-										org.weaklavendershield();
-									} else {
-										org.lavendershield();
-									}
-									setColor(Utils.ColorPLAGUE);
-								}
-								if (org._lavender <= 0) {
-									if (_isinfectious) {
-										if (_isaplant) {
-											if (_energy > Utils.PLAGUE_ENERGY_CONSUMPTION) {
-										        org.reproduceVirus();
-										        setColor(Utils.ColorPLAGUE);
-											}
-										} else {
-											if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
-									            org.reproduceVirus();
-									            setColor(Utils.ColorPLAGUE);
-								            }
-										}
-									} else {
-										if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
-											if ((!_isaconsumer) && (!_isafungus)) {
-												org._nVirusChildren = -1;
-											}
-								            org.reproduceforeignVirus();
-								            setColor(Utils.ColorPLAGUE);
-							            }
-									}
-								}
-							}
-						}
-					}
-				}
-				break;
-			case MINT:
-			case CORAL:
-			case BROWN:
-				break;
-			default:
-				if ((org._infectedGeneticCode == _geneticCode) || ((!_isinfectious) && (org._infectedGeneticCode != null))) {
-					if ((((_plagueversion == 2) || (!_isinfectious)) && (org._isaconsumer)) || ((_plagueversion == 1) && (org._isaplant))) {
-						if (org._lavender > 0) {
-							if ((_isenhanced) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
-								org.weaklavendershield();
-							} else {
-								org.lavendershield();
-							}
-							setColor(Utils.ColorPLAGUE);
-						}
-						if (org._lavender <= 0) {
-							if (_isinfectious) {
-								if (_isaplant) {
-									if (_energy > Utils.PLAGUE_ENERGY_CONSUMPTION) {
-								        org.reproduceVirus();
-								        setColor(Utils.ColorPLAGUE);
-									}
-								} else {
-									if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
-							            org.reproduceVirus();
-							            setColor(Utils.ColorPLAGUE);
-						            }
-								}
-							} else {
-								if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
-									if ((!_isaconsumer) && (!_isafungus)) {
-										org._nVirusChildren = -1;
-									}
-						            org.reproduceforeignVirus();
-						            setColor(Utils.ColorPLAGUE);
-					            }
-							}
-						}
-					}
-				}
-			}
-			if (org._nVirusChildren != 0) {
-				if (_isinfectious) {
-					if (_isaplant) {
-						if ((_plagueversion == 2) || (_sporeversion == 6)) {
-							useEnergy(Utils.PLAGUE_ENERGY_CONSUMPTION);
-						} else {
-							useEnergy(0.5 * Utils.PLAGUE_ENERGY_CONSUMPTION);
-						}
-			            org.setColor(Utils.ColorDARKLILAC);
-					} else {
-			            useEnergy(Utils.SCOURGE_ENERGY_CONSUMPTION);
-			            org.setColor(Utils.ColorDARKLILAC);
-					}
-					if (org._antiviral > 0) {
-						virusneutralized();
-					}
-				} else {
-		            useEnergy(Utils.SCOURGE_ENERGY_CONSUMPTION);
-		            org.setColor(Utils.ColorDARKLILAC);
-				}
-				org._nVirusChildren = 0;
 			}
 			break;
 		case VIOLET:
@@ -17279,7 +15025,7 @@ public class Organism extends Rectangle {
 			case BLUE:
 				if (org.useEnergy(Utils.BLUE_ENERGY_CONSUMPTION)) {
 					if (org._isenhanced) {
-					    useDetritus(Utils.between((0.5 * Math.sqrt(org._m[oseg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, _energy));
+					    useEnergy(Utils.between((0.5 * Math.sqrt(org._m[oseg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, _energy));
 						setColor(Utils.ColorDARKLILAC);
 						if (_energy < Utils.tol) {
 							die(org);
@@ -17306,7 +15052,7 @@ public class Organism extends Rectangle {
 				break;
 			case SKY:
 				if ((org._skyversion == 2) || (org._isaplant)) {
-					if (org.useDetritus(Utils.SKY_ENERGY_CONSUMPTION)) {
+					if (org.useEnergy(Utils.SKY_ENERGY_CONSUMPTION)) {
 						org._segColor[oseg] = Utils.ColorDEEPSKY;
 						org._mphoto[oseg] = -20;
 						org._useextraeffects = true;
@@ -17373,7 +15119,7 @@ public class Organism extends Rectangle {
 				}
 				break;
 			case MAROON:
-				if ((org._healing > 0) && (org._framesColor <= 0) && (org.useEnergy(Utils.MAGENTA_ENERGY_CONSUMPTION))) {
+				if ((org._healing > 0) && (org._framesColor <= 0) && ((_isaconsumer) || (_isafungus)) && (org.useEnergy(Utils.MAGENTA_ENERGY_CONSUMPTION))) {
 				    org.setColor(Color.MAGENTA);
 				    setColor(Utils.ColorVIOLET);
 				} else {
@@ -17435,9 +15181,6 @@ public class Organism extends Rectangle {
 						}
 						org._mphoto[oseg] = -20;
 					    setColor(Utils.ColorVIOLET);
-					    if (org._isonlyc4 == 2) {
-							org._updateEffects = 2;
-						}
 					    org._isinjured =true;
 					}
 				}
@@ -17511,7 +15254,6 @@ public class Organism extends Rectangle {
 					}
 				}
 				break;
-			case PLANKTON:
 			case GREEN:
 			case GRASS:
 			case FOREST:
@@ -17537,7 +15279,6 @@ public class Organism extends Rectangle {
 						if (useEnergy(Utils.VIOLET_ENERGY_CONSUMPTION)) {
 							for (int a = 0; a < org._segments; a++) {
 								switch (getTypeColor(org._segColor[a])) {
-								case PLANKTON:
 								case GREEN:
 								case GRASS:
 								case FOREST:
@@ -17663,25 +15404,6 @@ public class Organism extends Rectangle {
 				}
 				break;
 			case DARKGRAY:
-				if ((org._dodge) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
-					org.setColor(Utils.ColorTEAL);
-					setColor(Utils.ColorVIOLET);
-				} else {
-					if (useEnergy(Utils.VIOLET_ENERGY_CONSUMPTION)) {
-						if (org._isaplant) {
-						    org._segColor[oseg] = Utils.ColorGREENBROWN;
-						} else {
-							org._segColor[oseg] = Utils.ColorLIGHTBROWN;
-						}
-						org._mphoto[oseg] = -20;
-						setColor(Utils.ColorVIOLET);
-						if ((org._isonlyc4 == 2) && (!org._isblond)) {
-							org._updateEffects = 2;
-						}
-						org._isinjured =true;
-					}
-				}
-				break;
 			case CYAN:
 				if ((org._dodge) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
 					org.setColor(Utils.ColorTEAL);
@@ -17712,30 +15434,10 @@ public class Organism extends Rectangle {
 						}
 						org._mphoto[oseg] = -20;
 						setColor(Utils.ColorVIOLET);
-						org.segmentsRestoreEffects();
 						if (org._geneticCode.getPassive()) {
 							org._updateEffects = 2;
 						}
 						org._isinjured =true;
-					}
-				}
-				break;
-			case SPIN:
-				if ((org._dodge) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
-					org.setColor(Utils.ColorTEAL);
-					setColor(Utils.ColorVIOLET);
-				} else {
-					if (useEnergy(Utils.VIOLET_ENERGY_CONSUMPTION)) {
-						if (org._isaplant) {
-						    org._segColor[oseg] = Utils.ColorGREENBROWN;
-						} else {
-							org._segColor[oseg] = Utils.ColorLIGHTBROWN;
-						}
-						org._mphoto[oseg] = -20;
-						org._updateEffects = 2;
-						setColor(Utils.ColorVIOLET);
-						org._isinjured =true;
-						org.segmentsCheckPlant();
 					}
 				}
 				break;
@@ -17986,7 +15688,7 @@ public class Organism extends Rectangle {
 						org._isinjured =true;
 					}
 				} else {
-					if ((org._healing > 0) && (org._framesColor <= 0) && (org.useEnergy(Utils.MAGENTA_ENERGY_CONSUMPTION))) {
+					if ((org._healing > 0) && (org._framesColor <= 0) && ((_isaconsumer) || (_isafungus)) && (org.useEnergy(Utils.MAGENTA_ENERGY_CONSUMPTION))) {
 					    org.setColor(Color.MAGENTA);
 					    setColor(Utils.ColorVIOLET);
 					} else {
@@ -18007,24 +15709,19 @@ public class Organism extends Rectangle {
 				}
 				break;
 			case DARK:
-				if ((org._framesColor <= 7) && (org._blackversion > 0)) {
+				if ((org._framesColor <= 0) && (org._blackversion > 0)) {
 					// The other organism will be shown in the color it mimicks
 					org.mimicColor();
 				} else {
-					if ((org._dodge) && (org._blackversion == 0) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
-						org.setColor(Utils.ColorTEAL);
-						setColor(Utils.ColorVIOLET);
-					} else {
-						if (useEnergy(Utils.VIOLET_ENERGY_CONSUMPTION)) {
-							if (org._isaplant) {
-							    org._segColor[oseg] = Utils.ColorGREENBROWN;
-							} else {
-								org._segColor[oseg] = Utils.ColorLIGHTBROWN;
-							}
-							org._mphoto[oseg] = -20;
-							setColor(Utils.ColorVIOLET);
-							org._isinjured =true;
+					if (useEnergy(Utils.VIOLET_ENERGY_CONSUMPTION)) {
+						if (org._isaplant) {
+						    org._segColor[oseg] = Utils.ColorGREENBROWN;
+						} else {
+							org._segColor[oseg] = Utils.ColorLIGHTBROWN;
 						}
+						org._mphoto[oseg] = -20;
+						setColor(Utils.ColorVIOLET);
+						org._isinjured =true;
 					}
 				}
 				break;
@@ -18048,175 +15745,6 @@ public class Organism extends Rectangle {
 					setColor(Utils.ColorVIOLET);
 					org._isinjured =true;
 				}
-			}
-			break;
-		case OLIVE:
-			// Olive segment: Crack defense
-			switch (getTypeColor(org._segColor[oseg])) {
-			case OLIVE:
-				if (org._isaplant) {
-					if ((!_isaplant) || ((_isenhanced) && (org._isinfectious) && (!_isinfectious))) {
-						if (useEnergy(Utils.OLIVE_ENERGY_CONSUMPTION)) {
-							org._segColor[oseg] = Utils.ColorLIGHT_BLUE;
-							org._mphoto[oseg] = -20;
-							setColor(Utils.ColorOLIVE);
-							org._isinjured =true;
-						}
-					} else {
-						if ((org._isinfectious) || (!_isinfectious)) {
-							if (org.useEnergy(Utils.OLIVE_ENERGY_CONSUMPTION)) {
-						    	org._segColor[oseg] = Utils.ColorDARKOLIVE;
-						    	org._mphoto[oseg] = -20;
-						    	org._useextraeffects = true;
-						    } else {
-						    	if (useEnergy(Utils.OLIVE_ENERGY_CONSUMPTION)) {
-									org._segColor[oseg] = Utils.ColorLIGHT_BLUE;
-									org._mphoto[oseg] = -20;
-									setColor(Utils.ColorOLIVE);
-									org._isinjured =true;
-								}
-						    }
-						}
-				    }
-				}
-				break;
-			case DARKOLIVE:
-				if (org._isaplant) {
-					if ((!_isaplant) || ((_isenhanced) && (org._isinfectious) && (!_isinfectious))) {
-						if (useEnergy(Utils.OLIVE_ENERGY_CONSUMPTION)) {
-							org._segColor[oseg] = Utils.ColorLIGHT_BLUE;
-							org._mphoto[oseg] = -20;
-							setColor(Utils.ColorOLIVE);
-							org._isinjured =true;
-						}
-					}
-				}
-				break;
-			case BLUE:
-				if (org.active) {
-					if ((!_isenhanced) && ((!org._isaplant) || ((_isinfectious) && (_isaplant))) && (org.useEnergy(Utils.BLUE_ENERGY_CONSUMPTION))) {
-						setColor(Utils.ColorOLIVE);
-						org.setColor(Color.BLUE);
-					} else {
-						if (useEnergy(Utils.OLIVE_ENERGY_CONSUMPTION)) {
-							org._segColor[oseg] = Utils.ColorLIGHT_BLUE;
-							org._mphoto[oseg] = -20;
-							setColor(Utils.ColorOLIVE);
-							if (!org._isaplant) {
-								org._updateEffects = 2;
-							}
-							org._isinjured =true;
-						}
-					}
-				} else {
-					if (org._geneticCode.getModifiesspore() <= 9) {
-						if (((!_isaplant) && (!_isinfectious)) || (_iscoral) || (_isenhanced)) {
-							if (useEnergy(Utils.OLIVE_ENERGY_CONSUMPTION)) {
-								for (int a = 0; a < org._segments; a++) {
-									switch (getTypeColor(org._segColor[a])) {
-									case BLUE:
-										org._segColor[a] = Utils.ColorLIGHT_BLUE;
-										org._mphoto[a] = -20;
-										break;
-									}
-								}
-								setColor(Utils.ColorOLIVE);
-								org._framesColor = 0;
-								org._isinjured =true;
-								org._isfrozen =true;
-								org._allfrozen =true;
-							}
-						}
-					}
-				}
-				break;
-			case OCHRE:
-				if ((_isenhanced) || (org._isaplant)) {
-					if (useEnergy(Utils.OLIVE_ENERGY_CONSUMPTION)) {
-						org._segColor[oseg] = Utils.ColorLIGHT_BLUE;
-						org._mphoto[oseg] = -20;
-						setColor(Utils.ColorOLIVE);
-						org._isinjured =true;
-					}
-				}
-				break;
-			case SKY:
-			case DEEPSKY:
-				if (useEnergy(Utils.OLIVE_ENERGY_CONSUMPTION)) {
-					org._segColor[oseg] = Utils.ColorLIGHT_BLUE;
-					org._mphoto[oseg] = -20;
-					setColor(Utils.ColorOLIVE);
-					org.segmentsRestoreEffects();
-					if ((!org._isaplant) && (!org._geneticCode.getModifiessky())) {
-						org._updateEffects = 2;
-					}
-				}
-				break;
-			case LILAC:
-			case DARKLILAC:
-			case SPIKE:
-			case SPIKEPOINT:
-				if (useEnergy(Utils.OLIVE_ENERGY_CONSUMPTION)) {
-					if (org._isaplant) {
-					    org._segColor[oseg] = Utils.ColorBROKEN;
-					} else {
-						org._segColor[oseg] = Utils.ColorLIGHTBROWN;
-					}
-					org._mphoto[oseg] = -20.1;
-					setColor(Utils.ColorOLIVE);
-					org._isinjured =true;
-				}
-				break;
-			case FALLOW:
-				if ((!_isinfectious) || (!_isaplant) || (_isenhanced)) {
-					if (useEnergy(Utils.OLIVE_ENERGY_CONSUMPTION)) {
-						if (org._isaplant) {
-						    org._segColor[oseg] = Utils.ColorBROKEN;
-						} else {
-							org._segColor[oseg] = Utils.ColorLIGHTBROWN;
-						}
-						org._mphoto[oseg] = -20;
-						setColor(Utils.ColorOLIVE);
-						org._updateEffects = 2;
-						org._isinjured =true;
-					}
-				}
-				break;
-			case BARK:
-				if ((((!_isaplant) && (!_isaconsumer)) || (org._isaconsumer) || (_isenhanced) || (org._isenhanced)) && (org.active)) {
-					if (useEnergy(Utils.OLIVE_ENERGY_CONSUMPTION)) {
-						org._segColor[oseg] = Utils.ColorDEADBARK;
-						org._photosynthesis -= org._mphoto[oseg]*Utils.scale[org._growthRatio-1];
-						org._mphoto[oseg] = -0.5;
-						setColor(Utils.ColorOLIVE);
-						org._isfrozen =true;
-					}
-				} else {
-					org._segColor[oseg] = Utils.ColorOLDBARK;
-					if (org.active) {
-						org._photosynthesis -= org._mphoto[oseg]*Utils.scale[org._growthRatio-1];
-						org._mphoto[oseg] = -0.5;
-					}
-				}
-				break;
-			case OLDBARK:
-				if ((((!_isaplant) && (!_isaconsumer)) || (org._isaconsumer) || (_isenhanced) || (org._isenhanced)) && (org.active)) {
-					if (useEnergy(Utils.OLIVE_ENERGY_CONSUMPTION)) {
-						org._segColor[oseg] = Utils.ColorDEADBARK;
-						org._mphoto[oseg] = -0.5;
-						setColor(Utils.ColorOLIVE);
-						org._isfrozen =true;
-					}
-				}
-				break;
-			case DARK:
-				if ((org._framesColor <= 7) && (org._blackversion > 0)) {
-					// The other organism will be shown in the color it mimicks
-					org.mimicColor();
-				}
-				break;
-			default:
-				break;
 			}
 			break;
 		case FALLOW:
@@ -18324,11 +15852,9 @@ public class Organism extends Rectangle {
 				}
 				break;
 			case WHITE:
-			case PLANKTON:
 			case PURPLE:
 			case TEAL:
 			case CYAN:
-			case SPIN:
 			case YELLOW:
 			case AUBURN:
 			case INDIGO:
@@ -18960,29 +16486,31 @@ public class Organism extends Rectangle {
 			case BROWN:
 			case VISION:
 				if ((org.alive) && (!org.active)) {
-					if (org._lavender > 0) {
-						if ((_isenhanced) && (!_isinfectious)) {
-							org.weaklavendershield();
-						} else {
-							org.lavendershield();
-						}
-						setColor(Utils.ColorFALLOW);
-					}
-					if ((org._lavender <= 0) || ((!_isaplant) && (!_isinfectious)) || (_fallowversion == 1)) {
-						if (useEnergy(Utils.FALLOW_ENERGY_CONSUMPTION)) {
-							for (int y = 0; y < org._segments; y++) {
-								switch (getTypeColor(org._segColor[y])) {
-								case BROWN:
-								case VISION:
-									org._segColor[y] = Utils.ColorLIGHTBROWN;
-									break;
-								}
+					if ((_fallowversion != 2) || (!_isinfectious)) {
+						if (org._lavender > 0) {
+							if ((_isenhanced) && (!_isinfectious)) {
+								org.weaklavendershield();
+							} else {
+								org.lavendershield();
 							}
 							setColor(Utils.ColorFALLOW);
-							org._framesColor = 0;
-							org._isinjured =true;
-							org._isfrozen =true;
-							org._allfrozen =true;
+						}
+						if ((org._lavender <= 0) || ((!_isaplant) && (!_isinfectious)) || (_fallowversion == 1)) {
+							if (useEnergy(Utils.FALLOW_ENERGY_CONSUMPTION)) {
+								for (int y = 0; y < org._segments; y++) {
+									switch (getTypeColor(org._segColor[y])) {
+									case BROWN:
+									case VISION:
+										org._segColor[y] = Utils.ColorLIGHTBROWN;
+										break;
+									}
+								}
+								setColor(Utils.ColorFALLOW);
+								org._framesColor = 0;
+								org._isinjured =true;
+								org._isfrozen =true;
+								org._allfrozen =true;
+							}
 						}
 					}
 				}
@@ -19023,15 +16551,11 @@ public class Organism extends Rectangle {
 				}
 				break;
 			case DARK:
-				if (org._blackversion == 0) {
+				if ((org._framesColor <= 0) && (org._blackversion > 0)) {
+					// The other organism will be shown in the color it mimicks
+					org.mimicColor();
+					// break is here on purpose ;)
 					break;
-				} else {
-					if ((org._framesColor <= 7) && (org._blackversion > 0)) {
-						// The other organism will be shown in the color it mimicks
-						org.mimicColor();
-						// break is here on purpose ;)
-						break;
-					}
 				}
 			default:
 				if ((!org.active) && (org._segColor[oseg].equals(Utils.ColorOLDBARK))) {
@@ -19158,6 +16682,937 @@ public class Organism extends Rectangle {
 				}
 			}
 			break;
+		case PLAGUE:
+			// Force reproduction of infected victims
+			switch (getTypeColor(org._segColor[oseg])) {
+			case WHITE:
+			case PLAGUE:
+				if (((org._infectedGeneticCode == _geneticCode) || ((!_isinfectious) && (org._infectedGeneticCode != null))) && (org._isinfectious)) {
+					if ((((_plagueversion == 2) || (!_isinfectious)) && (org._isaconsumer)) || ((_plagueversion == 1) && (org._isaplant))) {
+						if (org._lavender > 0) {
+							if ((_isenhanced) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
+								org.weaklavendershield();
+							} else {
+								org.lavendershield();
+							}
+							setColor(Utils.ColorPLAGUE);
+						}
+						if (org._lavender <= 0) {
+							if (_isinfectious) {
+								if (_isaplant) {
+									if (_energy > Utils.PLAGUE_ENERGY_CONSUMPTION) {
+								        org.reproduceVirus();
+								        setColor(Utils.ColorPLAGUE);
+									}
+								} else {
+									if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
+							            org.reproduceVirus();
+							            setColor(Utils.ColorPLAGUE);
+						            }
+								}
+							} else {
+								if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
+									if ((!_isaconsumer) && (!_isafungus)) {
+										org._nVirusChildren = -1;
+									}
+						            org.reproduceforeignVirus();
+						            setColor(Utils.ColorPLAGUE);
+					            }
+							}
+						}
+					}
+				}
+				if ((org._indigo > 0) && (!org._isaplant) && (!org._isaconsumer) && (!org._isafungus) && (!_hasgoodvision)) {
+					if ((_isaplant) && (_isinfectious)) {
+						if (useEnergy((Utils.PLAGUE_ENERGY_CONSUMPTION + 0.01)/Utils.INDIGO_ENERGY_CONSUMPTION)) {
+				    	    org.setColor(Utils.ColorINDIGO);
+				    	    setColor(Utils.ColorPLAGUE);
+						}
+				    } else {
+				    	if ((_indigo == 0) || (_isaplant) || (_isaconsumer) || (_isafungus)) {
+				    		if (useEnergy((Utils.SCOURGE_ENERGY_CONSUMPTION + 0.1)/Utils.INDIGO_ENERGY_CONSUMPTION)) {
+				    			org.setColor(Utils.ColorINDIGO);
+				    			setColor(Utils.ColorPLAGUE);
+				    		}
+				    	}
+				    }
+				}
+				break;
+			case SILVER:
+				if ((org._infectedGeneticCode == _geneticCode) || ((!_isinfectious) && (org._infectedGeneticCode != null))) {
+					if ((org._isenhanced) || (_nTotalInfected >= org._nTotalInfected)) {
+						if ((((_plagueversion == 2) || (!_isinfectious)) && (org._isaconsumer)) || ((_plagueversion == 1) && (org._isaplant))) {
+							if (org._lavender > 0) {
+								if ((_isenhanced) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
+									org.weaklavendershield();
+								} else {
+									org.lavendershield();
+								}
+								setColor(Utils.ColorPLAGUE);
+							}
+							if (org._lavender <= 0) {
+								if (_isinfectious) {
+									if (_isaplant) {
+										if (_energy > Utils.PLAGUE_ENERGY_CONSUMPTION) {
+									        org.reproduceVirus();
+									        setColor(Utils.ColorPLAGUE);
+										}
+									} else {
+										if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
+								            org.reproduceVirus();
+								            setColor(Utils.ColorPLAGUE);
+							            }
+									}
+								} else {
+									if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
+										if ((!_isaconsumer) && (!_isafungus)) {
+											org._nVirusChildren = -1;
+										}
+							            org.reproduceforeignVirus();
+							            setColor(Utils.ColorPLAGUE);
+						            }
+								}
+							}
+						}
+					}
+				}
+				if ((org._indigo > 0) && (!org._isaplant) && (!org._isaconsumer) && (!org._isafungus) && (!_hasgoodvision)) {
+					if ((_isaplant) && (_isinfectious)) {
+						if (useEnergy((Utils.PLAGUE_ENERGY_CONSUMPTION + 0.01)/Utils.INDIGO_ENERGY_CONSUMPTION)) {
+				    	    org.setColor(Utils.ColorINDIGO);
+				    	    setColor(Utils.ColorPLAGUE);
+						}
+				    } else {
+				    	if ((_indigo == 0) || (_isaplant) || (_isaconsumer) || (_isafungus)) {
+				    		if (useEnergy((Utils.SCOURGE_ENERGY_CONSUMPTION + 0.1)/Utils.INDIGO_ENERGY_CONSUMPTION)) {
+				    			org.setColor(Utils.ColorINDIGO);
+				    			setColor(Utils.ColorPLAGUE);
+				    		}
+				    	}
+				    }
+				}
+				break;
+			case INDIGO:
+				if ((((_plagueversion == 2) || (!_isinfectious)) && (org._isaconsumer)) || ((_plagueversion == 1) && (org._isaplant))
+						|| ((!org._isaplant) && (!org._isaconsumer) && (!org._isafungus))) {
+					if (!_hasgoodvision) {
+						if ((_isaplant) && (_isinfectious)) {
+							if (useEnergy((Utils.PLAGUE_ENERGY_CONSUMPTION + 0.01)/Utils.INDIGO_ENERGY_CONSUMPTION)) {
+					    	    org.setColor(Utils.ColorINDIGO);
+					    	    setColor(Utils.ColorPLAGUE);
+							}
+					    } else {
+					    	if ((_indigo == 0) || (_isaplant) || (_isaconsumer) || (_isafungus)) {
+					    		if (useEnergy((Utils.SCOURGE_ENERGY_CONSUMPTION + 0.1)/Utils.INDIGO_ENERGY_CONSUMPTION)) {
+					    			org.setColor(Utils.ColorINDIGO);
+					    			setColor(Utils.ColorPLAGUE);
+					    		}
+					    	}
+					    }
+					}
+					if ((org._antiviral > 0) && (_isinfectious)) {
+		    			virusneutralized();
+					}
+				}
+				break;
+			case LEAF:
+				if ((org._infectedGeneticCode == _geneticCode) || ((!_isinfectious) && (org._infectedGeneticCode != null))) {
+					if (_plagueversion == 1) {
+						if ((org._dodge) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
+							org.setColor(Utils.ColorTEAL);
+							setColor(Utils.ColorPLAGUE);
+							org._hasdodged =true;
+						} else {
+							if ((!org._modifiesleaf) || (org._framesColor > 0)) {
+								if (org._lavender > 0) {
+									if ((_isenhanced) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
+										org.weaklavendershield();
+									} else {
+										org.lavendershield();
+									}
+									setColor(Utils.ColorPLAGUE);
+								}
+								if (org._lavender <= 0) {
+									if (org._jadefactor > 1) {
+										if (org._segColor[oseg].equals(Utils.ColorJADE)) {
+							    			org._segColor[oseg] = Utils.ColorDARKJADE;
+							    		} else {
+							    			org._segColor[oseg] = Utils.ColorDARKGREEN;
+							    		}
+							    		setColor(Utils.ColorPLAGUE);
+										org._hasdodged =true;
+										org._useextraeffects =true;
+										if ((org._antiviral > 0) && (_isinfectious)) {
+							    			virusneutralized();
+										}
+							    	} else {
+							    		if (_isinfectious) {
+											if (_isaplant) {
+												if (_energy > Utils.PLAGUE_ENERGY_CONSUMPTION) {
+											        org.reproduceVirus();
+											        setColor(Utils.ColorPLAGUE);
+												}
+											} else {
+												if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
+										            org.reproduceVirus();
+										            setColor(Utils.ColorPLAGUE);
+									            }
+											}
+										} else {
+											if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
+												if ((!_isaconsumer) && (!_isafungus)) {
+													org._nVirusChildren = -1;
+												}
+									            org.reproduceforeignVirus();
+									            setColor(Utils.ColorPLAGUE);
+								            }
+										}
+							    	}
+								}
+							} else {
+								// The other organism will be shown in light blue
+								org.setColortwoFrames(Utils.ColorLIGHT_BLUE);
+								setColor(Utils.ColorPLAGUE);
+							}
+						}
+					}
+				}
+				break;
+			case GREEN:
+			case GRASS:
+			case FOREST:
+			case SPRING:
+			case SUMMER:
+            case WINTER:
+			case LIME:
+			case C4:
+			case JADE:
+			case DARKJADE:
+				if ((org._infectedGeneticCode == _geneticCode) || ((!_isinfectious) && (org._infectedGeneticCode != null))) {
+					if (_plagueversion == 1) {
+						if ((org._dodge) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
+							org.setColor(Utils.ColorTEAL);
+							setColor(Utils.ColorPLAGUE);
+							org._hasdodged =true;
+						} else {
+							if (org._lavender > 0) {
+								if ((_isenhanced) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
+									org.weaklavendershield();
+								} else {
+									org.lavendershield();
+								}
+								setColor(Utils.ColorPLAGUE);
+							}
+							if (org._lavender <= 0) {
+								if (org._jadefactor > 1) {
+									if (org._segColor[oseg].equals(Utils.ColorJADE)) {
+						    			org._segColor[oseg] = Utils.ColorDARKJADE;
+						    		} else {
+						    			org._segColor[oseg] = Utils.ColorDARKGREEN;
+						    		}
+						    		setColor(Utils.ColorPLAGUE);
+									org._hasdodged =true;
+									org._useextraeffects =true;
+									if ((org._antiviral > 0) && (_isinfectious)) {
+						    			virusneutralized();
+									}
+						    	} else {
+						    		if (_isinfectious) {
+										if (_isaplant) {
+											if (_energy > Utils.PLAGUE_ENERGY_CONSUMPTION) {
+										        org.reproduceVirus();
+										        setColor(Utils.ColorPLAGUE);
+											}
+										} else {
+											if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
+									            org.reproduceVirus();
+									            setColor(Utils.ColorPLAGUE);
+								            }
+										}
+									} else {
+										if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
+											if ((!_isaconsumer) && (!_isafungus)) {
+												org._nVirusChildren = -1;
+											}
+								            org.reproduceforeignVirus();
+								            setColor(Utils.ColorPLAGUE);
+							            }
+									}
+						    	}
+							}
+						}
+					}
+				}
+				break;
+			case DARKGREEN:
+			case PURPLE:
+				if ((org._infectedGeneticCode == _geneticCode) || ((!_isinfectious) && (org._infectedGeneticCode != null))) {
+					if (_plagueversion == 1) {
+						if ((org._dodge) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
+							org.setColor(Utils.ColorTEAL);
+							setColor(Utils.ColorPLAGUE);
+							org._hasdodged =true;
+						} else {
+							if (org._lavender > 0) {
+								if ((_isenhanced) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
+									org.weaklavendershield();
+								} else {
+									org.lavendershield();
+								}
+								setColor(Utils.ColorPLAGUE);
+							}
+							if (org._lavender <= 0) {
+								if (_isinfectious) {
+									if (_isaplant) {
+										if (_energy > Utils.PLAGUE_ENERGY_CONSUMPTION) {
+									        org.reproduceVirus();
+									        setColor(Utils.ColorPLAGUE);
+										}
+									} else {
+										if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
+								            org.reproduceVirus();
+								            setColor(Utils.ColorPLAGUE);
+							            }
+									}
+								} else {
+									if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
+										if ((!_isaconsumer) && (!_isafungus)) {
+											org._nVirusChildren = -1;
+										}
+							            org.reproduceforeignVirus();
+							            setColor(Utils.ColorPLAGUE);
+						            }
+								}
+							}
+						}
+					}
+				}
+				break;
+			case BLUE:
+				if ((org._infectedGeneticCode == _geneticCode) || ((!_isinfectious) && (org._infectedGeneticCode != null))) {
+					if ((_plagueversion == 1) && (org._isaplant)) {
+				        if (org.useEnergy(Utils.BLUE_ENERGY_CONSUMPTION)) {
+				        	if (org._isenhanced) {
+							    useEnergy(Utils.between((0.5 * Math.sqrt(org._m[oseg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, _energy));
+								setColor(Utils.ColorDARKLILAC);
+								if (_energy < Utils.tol) {
+									die(org);
+								}
+							} else {
+								setColor(Utils.ColorPLAGUE);
+							}
+					        org.setColor(Color.BLUE);
+				        } else {
+				        	if (org._lavender > 0) {
+				        		if ((_isenhanced) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
+									org.weaklavendershield();
+								} else {
+									org.lavendershield();
+								}
+								setColor(Utils.ColorPLAGUE);
+							}
+							if (org._lavender <= 0) {
+								if (_isinfectious) {
+									if (_isaplant) {
+										if (_energy > Utils.PLAGUE_ENERGY_CONSUMPTION) {
+									        org.reproduceVirus();
+									        setColor(Utils.ColorPLAGUE);
+										}
+									} else {
+										if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
+								            org.reproduceVirus();
+								            setColor(Utils.ColorPLAGUE);
+							            }
+									}
+								} else {
+									if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
+										if ((!_isaconsumer) && (!_isafungus)) {
+											org._nVirusChildren = -1;
+										}
+							            org.reproduceforeignVirus();
+							            setColor(Utils.ColorPLAGUE);
+						            }
+								}
+							}
+				        }
+					}
+				}
+				break;
+			case OCHRE:
+			case BARK:
+			case OLDBARK:
+				if ((org._infectedGeneticCode == _geneticCode) || ((!_isinfectious) && (org._infectedGeneticCode != null))) {
+					if ((_plagueversion == 1) && (org._isaplant)) {
+						if (org._lavender > 0) {
+							if ((_isenhanced) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
+								org.weaklavendershield();
+							} else {
+								org.lavendershield();
+							}
+							setColor(Utils.ColorPLAGUE);
+						}
+						if (org._lavender <= 0) {
+							if (_isinfectious) {
+								if (_isaplant) {
+									if (_energy > Utils.PLAGUE_ENERGY_CONSUMPTION) {
+								        org.reproduceVirus();
+								        setColor(Utils.ColorPLAGUE);
+									}
+								} else {
+									if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
+							            org.reproduceVirus();
+							            setColor(Utils.ColorPLAGUE);
+						            }
+								}
+							} else {
+								if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
+									if ((!_isaconsumer) && (!_isafungus)) {
+										org._nVirusChildren = -1;
+									}
+						            org.reproduceforeignVirus();
+						            setColor(Utils.ColorPLAGUE);
+					            }
+							}
+						}
+					}
+				}
+				break;
+			case SKY:
+			case DEEPSKY:
+			case FALLOW:
+				if (((org._infectedGeneticCode == _geneticCode) && (_isenhanced)) || ((!_isinfectious) && (org._infectedGeneticCode != null))) {
+					if ((_plagueversion == 1) && (org._isaplant) && (org._createlavender == 0)) {
+						if (org._lavender > 0) {
+							if ((_isenhanced) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
+								org.weaklavendershield();
+							} else {
+								org.lavendershield();
+							}
+							setColor(Utils.ColorPLAGUE);
+						}
+						if (org._lavender <= 0) {
+							if (_isinfectious) {
+								if (_isaplant) {
+									if (_energy > Utils.PLAGUE_ENERGY_CONSUMPTION) {
+								        org.reproduceVirus();
+								        setColor(Utils.ColorPLAGUE);
+									}
+								} else {
+									if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
+							            org.reproduceVirus();
+							            setColor(Utils.ColorPLAGUE);
+						            }
+								}
+							} else {
+								if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
+									if ((!_isaconsumer) && (!_isafungus)) {
+										org._nVirusChildren = -1;
+									}
+						            org.reproduceforeignVirus();
+						            setColor(Utils.ColorPLAGUE);
+					            }
+							}
+						}
+					}
+				}
+				break;
+			case OLIVE:
+				if ((!_isinfectious) && (!_isaconsumer) && (!_isafungus) && (org._infectedGeneticCode != null)) {
+					if ((_plagueversion == 1) && (org._isaplant) && (org._createlavender == 0)) {
+						if (org._lavender > 0) {
+							if ((_isenhanced) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
+								org.weaklavendershield();
+							} else {
+								org.lavendershield();
+							}
+							setColor(Utils.ColorPLAGUE);
+						}
+						if (org._lavender <= 0) {
+							if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
+								if ((!_isaconsumer) && (!_isafungus)) {
+									org._nVirusChildren = -1;
+								}
+					            org.reproduceforeignVirus();
+					            setColor(Utils.ColorPLAGUE);
+				            }
+						}
+					}
+				}
+				break;
+			case MAROON:
+			case ORANGE:
+			case FIRE:
+				if ((org._infectedGeneticCode == _geneticCode) || ((!_isinfectious) && (org._infectedGeneticCode != null))) {
+					if ((_plagueversion == 2) || (!_isinfectious)) {
+						if (org._lavender > 0) {
+							if ((_isenhanced) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
+								org.weaklavendershield();
+							} else {
+								org.lavendershield();
+							}
+							setColor(Utils.ColorPLAGUE);
+						}
+						if (org._lavender <= 0) {
+							if (_isinfectious) {
+								if (_isaplant) {
+									if (_energy > Utils.PLAGUE_ENERGY_CONSUMPTION) {
+								        org.reproduceVirus();
+								        setColor(Utils.ColorPLAGUE);
+									}
+								} else {
+									if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
+							            org.reproduceVirus();
+							            setColor(Utils.ColorPLAGUE);
+						            }
+								}
+							} else {
+								if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
+									if ((!_isaconsumer) && (!_isafungus)) {
+										org._nVirusChildren = -1;
+									}
+						            org.reproduceforeignVirus();
+						            setColor(Utils.ColorPLAGUE);
+					            }
+							}
+						}
+					}
+				}
+				break;
+			case RED:
+			case CREAM:
+				if (((org._infectedGeneticCode == _geneticCode) && (_isenhanced)) || ((!_isinfectious) && (org._infectedGeneticCode != null))) {
+					if (((_plagueversion == 2) || (!_isinfectious)) && (org._createlavender == 0)) {
+						if (org._lavender > 0) {
+							if ((_isenhanced) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
+								org.weaklavendershield();
+							} else {
+								org.lavendershield();
+							}
+							setColor(Utils.ColorPLAGUE);
+						}
+						if (org._lavender <= 0) {
+							if (_isinfectious) {
+								if (_isaplant) {
+									if (_energy > Utils.PLAGUE_ENERGY_CONSUMPTION) {
+								        org.reproduceVirus();
+								        setColor(Utils.ColorPLAGUE);
+									}
+								} else {
+									if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
+							            org.reproduceVirus();
+							            setColor(Utils.ColorPLAGUE);
+						            }
+								}
+							} else {
+								if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
+									if ((!_isaconsumer) && (!_isafungus)) {
+										org._nVirusChildren = -1;
+									}
+						            org.reproduceforeignVirus();
+						            setColor(Utils.ColorPLAGUE);
+					            }
+							}
+						}
+					}
+				}
+				break;
+			case PINK:
+				if (((org._infectedGeneticCode == _geneticCode) && ((org._modifiespink) || ((_isauburn) && (!_isaplant) && (!_isaconsumer) && (!_isafungus))))
+						|| ((!_isinfectious) && (org._infectedGeneticCode != null))) {
+					if ((_plagueversion == 2) || (!_isinfectious)) {
+						if (org._lavender > 0) {
+							if ((_isenhanced) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
+								org.weaklavendershield();
+							} else {
+								org.lavendershield();
+							}
+							setColor(Utils.ColorPLAGUE);
+						}
+						if (org._lavender <= 0) {
+							if (_isinfectious) {
+								if (_isaplant) {
+									if (_energy > Utils.PLAGUE_ENERGY_CONSUMPTION) {
+								        org.reproduceVirus();
+								        setColor(Utils.ColorPLAGUE);
+									}
+								} else {
+									if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
+							            org.reproduceVirus();
+							            setColor(Utils.ColorPLAGUE);
+						            }
+								}
+							} else {
+								if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
+									if ((!_isaconsumer) && (!_isafungus)) {
+										org._nVirusChildren = -1;
+									}
+						            org.reproduceforeignVirus();
+						            setColor(Utils.ColorPLAGUE);
+					            }
+							}
+						}
+					}
+				}
+				break;
+			case SPIKE:
+				if ((org._isaplant) || (org._isenhanced)) {
+					if ((org._infectedGeneticCode == _geneticCode) || ((!_isinfectious) && (org._infectedGeneticCode != null))) {
+						if ((((_plagueversion == 2) || (!_isinfectious)) && (org._isaconsumer)) || ((_plagueversion == 1) && (org._isaplant))) {
+							if (org._lavender > 0) {
+								if ((_isenhanced) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
+									org.weaklavendershield();
+								} else {
+									org.lavendershield();
+								}
+								setColor(Utils.ColorPLAGUE);
+							}
+							if (org._lavender <= 0) {
+								if (_isinfectious) {
+									if (_isaplant) {
+										if (_energy > Utils.PLAGUE_ENERGY_CONSUMPTION) {
+									        org.reproduceVirus();
+									        setColor(Utils.ColorPLAGUE);
+										}
+									} else {
+										if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
+								            org.reproduceVirus();
+								            setColor(Utils.ColorPLAGUE);
+							            }
+									}
+								} else {
+									if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
+										if ((!_isaconsumer) && (!_isafungus)) {
+											org._nVirusChildren = -1;
+										}
+							            org.reproduceforeignVirus();
+							            setColor(Utils.ColorPLAGUE);
+						            }
+								}
+							}
+						}
+					}
+				}
+				break;
+			case LAVENDER:
+				if ((org._isaconsumer) || (org._isaplant)) {
+					if (org._isenhanced) {
+						useEnergy(Utils.between((1/Utils.LAVENDER_ENERGY_CONSUMPTION), 0, _energy));
+						if (org._lavender < Utils.LAVENDER_SHIELD) {
+							org._lavender += 1000;
+							if (org._lavender >= Utils.LAVENDER_SHIELD) {
+								org._lavender = Utils.LAVENDER_SHIELD;
+							}
+						}
+					} else {
+						useEnergy(Utils.between((0.2/Utils.LAVENDER_ENERGY_CONSUMPTION), 0, _energy));
+						if (org._lavender < Utils.LAVENDER_SHIELD) {
+							org._lavender += 200;
+							if (org._lavender >= Utils.LAVENDER_SHIELD) {
+								org._lavender = Utils.LAVENDER_SHIELD;
+							}
+						}
+					}
+					if (org._infectedGeneticCode == _geneticCode) {
+						org._infectedGeneticCode = null;
+						org._savedGeneticCode = null;
+					}
+					// The other organism will be shown in lavender
+					org.setColor(Utils.ColorLAVENDER);
+					// This organism will be shown in deadbark
+					setColor(Utils.ColorDEADBARK);
+					org._hasdodged =true;
+					if (_energy < Utils.tol) {
+						die(org);
+					}
+				}
+				break;
+			case SPORE:
+				if ((org._infectedGeneticCode == _geneticCode) || ((!_isinfectious) && (org._infectedGeneticCode != null))) {
+					if ((((_plagueversion == 2) || (!_isinfectious)) && (org._isaconsumer)) || ((_plagueversion == 1) && (org._isaplant))) {
+						if ((org._sporeversion >= 1) && (org._isaconsumer)) {
+							if ((org._dodge) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
+								org.setColor(Utils.ColorTEAL);
+								setColor(Utils.ColorPLAGUE);
+								org._hasdodged =true;
+							} else {
+								if (org._lavender > 0) {
+									if ((_isenhanced) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
+										org.weaklavendershield();
+									} else {
+										org.lavendershield();
+									}
+									setColor(Utils.ColorPLAGUE);
+								}
+								if (org._lavender <= 0) {
+									if (_isinfectious) {
+										if (_isaplant) {
+											if (_energy > Utils.PLAGUE_ENERGY_CONSUMPTION) {
+										        org.reproduceVirus();
+										        setColor(Utils.ColorPLAGUE);
+											}
+										} else {
+											if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
+									            org.reproduceVirus();
+									            setColor(Utils.ColorPLAGUE);
+								            }
+										}
+									} else {
+										if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
+											if ((!_isaconsumer) && (!_isafungus)) {
+												org._nVirusChildren = -1;
+											}
+								            org.reproduceforeignVirus();
+								            setColor(Utils.ColorPLAGUE);
+							            }
+									}
+								}
+							}
+						} else {
+							setColor(Utils.ColorPLAGUE);
+							org.setColor(Utils.ColorSPORE);
+						}
+					}
+				}
+				break;
+			case CYAN:
+			case TEAL:
+			case YELLOW:
+			case AUBURN:
+			case BLOND:
+			case FLOWER:
+			case DARKGRAY:
+			case GOLD:
+				if ((org._infectedGeneticCode == _geneticCode) || ((!_isinfectious) && (org._infectedGeneticCode != null))) {
+					if ((((_plagueversion == 2) || (!_isinfectious)) && (org._isaconsumer)) || ((_plagueversion == 1) && (org._isaplant))) {
+						if ((org._dodge) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
+							org.setColor(Utils.ColorTEAL);
+							setColor(Utils.ColorPLAGUE);
+							org._hasdodged =true;
+						} else {
+							if (org._lavender > 0) {
+								if ((_isenhanced) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
+									org.weaklavendershield();
+								} else {
+									org.lavendershield();
+								}
+								setColor(Utils.ColorPLAGUE);
+							}
+							if (org._lavender <= 0) {
+								if (_isinfectious) {
+									if (_isaplant) {
+										if (_energy > Utils.PLAGUE_ENERGY_CONSUMPTION) {
+									        org.reproduceVirus();
+									        setColor(Utils.ColorPLAGUE);
+										}
+									} else {
+										if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
+								            org.reproduceVirus();
+								            setColor(Utils.ColorPLAGUE);
+							            }
+									}
+								} else {
+									if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
+										if ((!_isaconsumer) && (!_isafungus)) {
+											org._nVirusChildren = -1;
+										}
+							            org.reproduceforeignVirus();
+							            setColor(Utils.ColorPLAGUE);
+						            }
+								}
+							}
+						}
+					}
+				}
+				break;
+			case MAGENTA:
+			case ROSE:
+				if (((org._infectedGeneticCode == _geneticCode) || ((!_isinfectious) && (org._infectedGeneticCode != null))) && (!_altruist)) {
+					if ((((_plagueversion == 2) || (!_isinfectious)) && (org._isaconsumer)) || ((_plagueversion == 1) && (org._isaplant))) {
+						if ((org._dodge) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
+							org.setColor(Utils.ColorTEAL);
+							setColor(Utils.ColorPLAGUE);
+							org._hasdodged =true;
+						} else {
+							if (org._lavender > 0) {
+								if ((_isenhanced) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
+									org.weaklavendershield();
+								} else {
+									org.lavendershield();
+								}
+								setColor(Utils.ColorPLAGUE);
+							}
+							if (org._lavender <= 0) {
+								if (_isinfectious) {
+									if (_isaplant) {
+										if (_energy > Utils.PLAGUE_ENERGY_CONSUMPTION) {
+									        org.reproduceVirus();
+									        setColor(Utils.ColorPLAGUE);
+										}
+									} else {
+										if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
+								            org.reproduceVirus();
+								            setColor(Utils.ColorPLAGUE);
+							            }
+									}
+								} else {
+									if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
+										if ((!_isaconsumer) && (!_isafungus)) {
+											org._nVirusChildren = -1;
+										}
+							            org.reproduceforeignVirus();
+							            setColor(Utils.ColorPLAGUE);
+						            }
+								}
+							}
+						}
+					}
+				}
+				break;
+			case SPIKEPOINT:
+				if (org._isenhanced) {
+					if ((org._infectedGeneticCode == _geneticCode) || ((!_isinfectious) && (org._infectedGeneticCode != null))) {
+						if ((((_plagueversion == 2) || (!_isinfectious)) && (org._isaconsumer)) || ((_plagueversion == 1) && (org._isaplant))) {
+							if (org._lavender > 0) {
+								if ((_isenhanced) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
+									org.weaklavendershield();
+								} else {
+									org.lavendershield();
+								}
+								setColor(Utils.ColorPLAGUE);
+							}
+							if (org._lavender <= 0) {
+								if (_isinfectious) {
+									if (_isaplant) {
+										if (_energy > Utils.PLAGUE_ENERGY_CONSUMPTION) {
+									        org.reproduceVirus();
+									        setColor(Utils.ColorPLAGUE);
+										}
+									} else {
+										if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
+								            org.reproduceVirus();
+								            setColor(Utils.ColorPLAGUE);
+							            }
+									}
+								} else {
+									if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
+										if ((!_isaconsumer) && (!_isafungus)) {
+											org._nVirusChildren = -1;
+										}
+							            org.reproduceforeignVirus();
+							            setColor(Utils.ColorPLAGUE);
+						            }
+								}
+							}
+						}
+					}
+				}
+				break;
+			case DARK:
+				if ((org._framesColor <= 0) && (org._blackversion > 0)) {
+					// The other organism will be shown in the color it mimicks
+					org.mimicColor();
+				} else {
+					if ((org._infectedGeneticCode == _geneticCode) || ((!_isinfectious) && (org._infectedGeneticCode != null))) {
+						if ((((_plagueversion == 2) || (!_isinfectious)) && (org._isaconsumer)) || ((_plagueversion == 1) && (org._isaplant))) {
+							if (org._lavender > 0) {
+								if ((_isenhanced) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
+									org.weaklavendershield();
+								} else {
+									org.lavendershield();
+								}
+								setColor(Utils.ColorPLAGUE);
+							}
+							if (org._lavender <= 0) {
+								if (_isinfectious) {
+									if (_isaplant) {
+										if (_energy > Utils.PLAGUE_ENERGY_CONSUMPTION) {
+									        org.reproduceVirus();
+									        setColor(Utils.ColorPLAGUE);
+										}
+									} else {
+										if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
+								            org.reproduceVirus();
+								            setColor(Utils.ColorPLAGUE);
+							            }
+									}
+								} else {
+									if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
+										if ((!_isaconsumer) && (!_isafungus)) {
+											org._nVirusChildren = -1;
+										}
+							            org.reproduceforeignVirus();
+							            setColor(Utils.ColorPLAGUE);
+						            }
+								}
+							}
+						}
+					}
+				}
+				break;
+			case MINT:
+			case CORAL:
+			case BROWN:
+				break;
+			default:
+				if ((org._infectedGeneticCode == _geneticCode) || ((!_isinfectious) && (org._infectedGeneticCode != null))) {
+					if ((((_plagueversion == 2) || (!_isinfectious)) && (org._isaconsumer)) || ((_plagueversion == 1) && (org._isaplant))) {
+						if (org._lavender > 0) {
+							if ((_isenhanced) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
+								org.weaklavendershield();
+							} else {
+								org.lavendershield();
+							}
+							setColor(Utils.ColorPLAGUE);
+						}
+						if (org._lavender <= 0) {
+							if (_isinfectious) {
+								if (_isaplant) {
+									if (_energy > Utils.PLAGUE_ENERGY_CONSUMPTION) {
+								        org.reproduceVirus();
+								        setColor(Utils.ColorPLAGUE);
+									}
+								} else {
+									if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
+							            org.reproduceVirus();
+							            setColor(Utils.ColorPLAGUE);
+						            }
+								}
+							} else {
+								if (_energy > Utils.SCOURGE_ENERGY_CONSUMPTION) {
+									if ((!_isaconsumer) && (!_isafungus)) {
+										org._nVirusChildren = -1;
+									}
+						            org.reproduceforeignVirus();
+						            setColor(Utils.ColorPLAGUE);
+					            }
+							}
+						}
+					}
+				}
+			}
+			if (org._nVirusChildren != 0) {
+				if (_isinfectious) {
+					if (_isaplant) {
+						if ((_plagueversion == 2) || (_sporeversion == 6)) {
+							useEnergy(Utils.PLAGUE_ENERGY_CONSUMPTION);
+						} else {
+							useEnergy(0.5 * Utils.PLAGUE_ENERGY_CONSUMPTION);
+						}
+			            org.setColor(Utils.ColorDARKLILAC);
+					} else {
+			            useEnergy(Utils.SCOURGE_ENERGY_CONSUMPTION);
+			            org.setColor(Utils.ColorDARKLILAC);
+					}
+					if (org._antiviral > 0) {
+						virusneutralized();
+					}
+				} else {
+		            useEnergy(Utils.SCOURGE_ENERGY_CONSUMPTION);
+		            org.setColor(Utils.ColorDARKLILAC);
+				}
+				org._nVirusChildren = 0;
+			}
+			break;
 		case CORAL:
 			// Transform viruses and particles into children
 			switch (getTypeColor(org._segColor[oseg])) {
@@ -19187,7 +17642,7 @@ public class Organism extends Rectangle {
 								virusneutralized();
 							}
 						} else {
-							if ((org._dodge) && (org._energy >= 1) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
+							if ((org._dodge) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
 								org.setColor(Utils.ColorTEAL);
 								setColor(Utils.ColorCORAL);
 								org._hasdodged =true;
@@ -19264,47 +17719,12 @@ public class Organism extends Rectangle {
 				break;
 			case TEAL:
 			case CYAN:
-			case SPIN:
-			case BLOND:
-				if ((!org._isaplant) && (!org._isaconsumer)
-						&& ((!org._isafungus) || (((_isenhanced) || ((org._timeToReproduce > org._timeToReproduceMax) && (_fallowversion > 0))) && (!org._issilver)))) {
-					if ((!org._transfersenergy) || (org._isinfectious) || (org._iscoral) || (org._isafungus)) {
-						if ((org._dodge) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
-							org.setColor(Utils.ColorTEAL);
-							setColor(Utils.ColorCORAL);
-							org._hasdodged =true;
-						} else {
-							if (org._antiviral > 0) {
-								virusneutralized();
-							}
-							if (org._lavender > 0) {
-								if ((_isauburn) && (!_isaplant) && (!_isaconsumer) && (!_isafungus) && (!org._isafungus)) {
-									org.weaklavendershield();
-								} else {
-									org.lavendershield();
-								}
-								setColor(Utils.ColorCORAL);
-								org._hasdodged =true;
-							}
-							if ((org._lavender <= 0) || (org._timeToReproduce > org._timeToReproduceMax)) {
-								if (useEnergy(Utils.CORAL_ENERGY_CONSUMPTION)) {
-									setColor(Utils.ColorCORAL);
-									org.infectedBy(this);
-									if (org._energy >= 1) {
-										org.transform();
-									}
-									org.die(this);
-								}
-							}
-						}
-					}
-				}
-				break;
 			case AUBURN:
+			case BLOND:
 			case FLOWER:
 				if ((!org._isaplant) && (!org._isaconsumer)
 						&& ((!org._isafungus) || (((_isenhanced) || ((org._timeToReproduce > org._timeToReproduceMax) && (_fallowversion > 0))) && (!org._issilver)))) {
-					if ((org._isinfectious) || (org._isafungus)) {
+					if ((!org._transfersenergy) || (org._isinfectious) || (org._iscoral) || (org._isafungus)) {
 						if ((org._dodge) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
 							org.setColor(Utils.ColorTEAL);
 							setColor(Utils.ColorCORAL);
@@ -19529,7 +17949,7 @@ public class Organism extends Rectangle {
 				break;
 			case FRUIT:
 				if (org._sporeversion == 1) {
-					if ((org._framesColor > 0) || (_isaplant) || ((_hasgoodvision) && ((!org._iscoral) || (!org._hasgoodvision)))) {
+					if ((org._framesColor > 0) || (_isaplant) || (_hasgoodvision)) {
 						if (useEnergy(Utils.CORAL_ENERGY_CONSUMPTION)) {
 							setColor(Utils.ColorCORAL);
 							org.infectedBy(this);
@@ -19542,7 +17962,7 @@ public class Organism extends Rectangle {
 						org.setColor(Utils.ColorBROKEN);
 					}
 				} else {
-					if ((_hasgoodvision) && ((!org._iscoral) || (!org._hasgoodvision))) {
+					if (_hasgoodvision) {
 						if (useEnergy(Utils.CORAL_ENERGY_CONSUMPTION)) {
 							setColor(Utils.ColorCORAL);
 							org.infectedBy(this);
@@ -19555,36 +17975,32 @@ public class Organism extends Rectangle {
 				}
 				break;
 			case DARK:
-				if (org._blackversion == 0) {
-					break;
+				if ((org._framesColor <= 0) && (org._blackversion > 0)) {
+					// The other organism will be shown in the color it mimicks
+					org.mimicColor();
 				} else {
-					if ((org._framesColor <= 7) && (org._blackversion > 0)) {
-						// The other organism will be shown in the color it mimicks
-						org.mimicColor();
-					} else {
-						if ((!org._isaplant) && (!org._isaconsumer)
-								&& ((!org._isafungus) || (((_isenhanced) || ((org._timeToReproduce > org._timeToReproduceMax) && (_fallowversion > 0))) && (!org._issilver)))) {
-							if ((!org._transfersenergy) || (org._isinfectious) || (org._iscoral) || (org._isafungus)) {
-								if (org._antiviral > 0) {
-									virusneutralized();
+					if ((!org._isaplant) && (!org._isaconsumer)
+							&& ((!org._isafungus) || (((_isenhanced) || ((org._timeToReproduce > org._timeToReproduceMax) && (_fallowversion > 0))) && (!org._issilver)))) {
+						if ((!org._transfersenergy) || (org._isinfectious) || (org._iscoral) || (org._isafungus)) {
+							if (org._antiviral > 0) {
+								virusneutralized();
+							}
+							if (org._lavender > 0) {
+								if ((_isauburn) && (!_isaplant) && (!_isaconsumer) && (!_isafungus) && (!org._isafungus)) {
+									org.weaklavendershield();
+								} else {
+									org.lavendershield();
 								}
-								if (org._lavender > 0) {
-									if ((_isauburn) && (!_isaplant) && (!_isaconsumer) && (!_isafungus) && (!org._isafungus)) {
-										org.weaklavendershield();
-									} else {
-										org.lavendershield();
-									}
+								setColor(Utils.ColorCORAL);
+							}
+							if ((org._lavender <= 0) || (org._timeToReproduce > org._timeToReproduceMax)) {
+								if (useEnergy(Utils.CORAL_ENERGY_CONSUMPTION)) {
 									setColor(Utils.ColorCORAL);
-								}
-								if ((org._lavender <= 0) || (org._timeToReproduce > org._timeToReproduceMax)) {
-									if (useEnergy(Utils.CORAL_ENERGY_CONSUMPTION)) {
-										setColor(Utils.ColorCORAL);
-										org.infectedBy(this);
-										if (org._energy >= 1) {
-											org.transform();
-										}
-										org.die(this);
+									org.infectedBy(this);
+									if (org._energy >= 1) {
+										org.transform();
 									}
+									org.die(this);
 								}
 							}
 						}
@@ -19622,7 +18038,7 @@ public class Organism extends Rectangle {
 						}
 					}
 				} else {
-					if ((org.alive) && ((_hasgoodvision) && ((!org._iscoral) || (!org._hasgoodvision)))) {
+					if ((org.alive) && (_hasgoodvision)) {
 						if (useEnergy(Utils.CORAL_ENERGY_CONSUMPTION)) {
 							setColor(Utils.ColorCORAL);
 							org.infectedBy(this);
@@ -19696,11 +18112,9 @@ public class Organism extends Rectangle {
 				}
 				break;
 			case DARKGREEN:
-			case PLANKTON:
 			case PURPLE:
 			case TEAL:
 			case CYAN:
-			case SPIN:
 			case YELLOW:
 			case AUBURN:
 			case BLOND:
@@ -19810,7 +18224,7 @@ public class Organism extends Rectangle {
 				if ((org._skyversion == 2) && (org._infectedGeneticCode != _geneticCode) && (_sporeversion == 1)) {
 					if (org._isaplant) {
 						if ((org._infectedGeneticCode != null) || (org._sporeversion != 1)) {
-							if (org.useDetritus(Utils.SKY_ENERGY_CONSUMPTION)) {
+							if (org.useEnergy(Utils.SKY_ENERGY_CONSUMPTION)) {
 								org._segColor[oseg] = Utils.ColorDEEPSKY;
 								org._mphoto[oseg] = -20;
 								org._useextraeffects = true;
@@ -19914,7 +18328,6 @@ public class Organism extends Rectangle {
 			case ORANGE:
 			case FIRE:
 			case MAROON:
-			case CRIMSON:
 			case PINK:
 			case CREAM:
 			case SPIKEPOINT:
@@ -19954,15 +18367,15 @@ public class Organism extends Rectangle {
 			switch (getTypeColor(org._segColor[oseg])) {
 			case SKY:
 				if (_skyversion == 1) {
-					if (org._canmove > 0) {
+					if (org._canmove) {
 						if (org._skyversion == 2) {
 							org.paralyzed(this);
 						}
 					}
 				} else {
 					if (org._skyversion == 2) {
-						if (useDetritus(Utils.SKY_ENERGY_CONSUMPTION)) {
-		                	if (org.useDetritus(Utils.SKY_ENERGY_CONSUMPTION)) {
+						if (useEnergy(Utils.SKY_ENERGY_CONSUMPTION)) {
+		                	if (org.useEnergy(Utils.SKY_ENERGY_CONSUMPTION)) {
 		                		_segColor[seg] = Utils.ColorDEEPSKY;
 		                		_mphoto[seg] = -20;
 		    					_useextraeffects = true;
@@ -19978,7 +18391,7 @@ public class Organism extends Rectangle {
 		                	}
 		                }
 					} else {
-						if ((_isaplant) && (!_isenhanced) && (org.useDetritus(16 * Utils.SKY_ENERGY_CONSUMPTION))) {
+						if ((_isaplant) && (!_isenhanced) && (org.useEnergy(16 * Utils.SKY_ENERGY_CONSUMPTION))) {
 	    					org._segColor[oseg] = Utils.ColorDEEPSKY;
 	    					org._mphoto[oseg] = -20;
 	    					org._useextraeffects = true;
@@ -19994,7 +18407,7 @@ public class Organism extends Rectangle {
 			    break;
 			case DEEPSKY:
 				if (_skyversion == 1) {
-					if (org._canmove > 0) {
+					if (org._canmove) {
 						if (org._skyversion == 2) {
 							org.paralyzed(this);
 						}
@@ -20005,7 +18418,7 @@ public class Organism extends Rectangle {
 							org.frozen(this);
 						}
 					} else {
-						if ((_isaplant) && (!_isenhanced) && (org.useDetritus(16 * Utils.SKY_ENERGY_CONSUMPTION))) {
+						if ((_isaplant) && (!_isenhanced) && (org.useEnergy(16 * Utils.SKY_ENERGY_CONSUMPTION))) {
 	    					setColor(Utils.ColorSKY);
 	    					org.setColor(Utils.ColorDEEPSKY);
 	    				} else {
@@ -20022,7 +18435,7 @@ public class Organism extends Rectangle {
 					setColor(Utils.ColorSKY);
 				} else {
 					if (_skyversion == 1) {
-						if (org._canmove > 0) {
+						if (org._canmove) {
 							if ((org._skyversion != 1) || (_isaplant) || (org._isaplant) || (_isaconsumer) || (org._isaconsumer) || (_isafungus) || (org._isafungus)) {
 								org.paralyzed(this);
 							}
@@ -20040,7 +18453,6 @@ public class Organism extends Rectangle {
 					}
 				}
 				break;
-			case PLANKTON:
 			case GREEN:
 			case GRASS:
 			case FOREST:
@@ -20053,7 +18465,6 @@ public class Organism extends Rectangle {
 			case PURPLE:
 			case TEAL:
 			case CYAN:
-			case SPIN:
 			case YELLOW:
 			case AUBURN:
 			case INDIGO:
@@ -20067,7 +18478,7 @@ public class Organism extends Rectangle {
 					setColor(Utils.ColorSKY);
 				} else {
 					if (_skyversion == 1) {
-						if (org._canmove > 0) {
+						if (org._canmove) {
 							if ((org._skyversion != 1) || (_isaplant) || (org._isaplant) || (_isaconsumer) || (org._isaconsumer) || (_isafungus) || (org._isafungus)) {
 								org.paralyzed(this);
 							}
@@ -20083,7 +18494,7 @@ public class Organism extends Rectangle {
 				if (org.active) {
 					if (org.useEnergy(Utils.BLUE_ENERGY_CONSUMPTION)) {
 						if (org._isenhanced) {
-						    useDetritus(Utils.between((0.5 * Math.sqrt(org._m[oseg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, _energy));
+						    useEnergy(Utils.between((0.5 * Math.sqrt(org._m[oseg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, _energy));
 							setColor(Utils.ColorDARKLILAC);
 							if (_energy < Utils.tol) {
 								die(org);
@@ -20094,7 +18505,7 @@ public class Organism extends Rectangle {
 						org.setColor(Color.BLUE);
 					} else {
 						if (_skyversion == 1) {
-							if (org._canmove > 0) {
+							if (org._canmove) {
 								if ((org._skyversion != 1) || (_isaplant) || (org._isaplant) || (_isaconsumer) || (org._isaconsumer) || (_isafungus) || (org._isafungus)) {
 									if ((org._healing == 0) || (!_isaplant) || (_isenhanced)) {
 										org.paralyzed(this);
@@ -20110,7 +18521,7 @@ public class Organism extends Rectangle {
 				} else {
 					if (org._geneticCode.getModifiesspore() >= 10) {
 						if ((_skyversion == 2) || (!_isaplant)) {
-							if (useDetritus(Utils.SKY_ENERGY_CONSUMPTION)) {
+							if (useEnergy(Utils.SKY_ENERGY_CONSUMPTION)) {
 								for (int a = 0; a < org._segments; a++) {
 									switch (getTypeColor(org._segColor[a])) {
 									case BLUE:
@@ -20135,7 +18546,7 @@ public class Organism extends Rectangle {
 					setColor(Utils.ColorSKY);
 				} else {
 					if (_skyversion == 1) {
-						if (org._canmove > 0) {
+						if (org._canmove) {
 							org.paralyzed(this);
 						}
 					} else {
@@ -20155,14 +18566,16 @@ public class Organism extends Rectangle {
 					setColor(Utils.ColorSKY);
 				} else {
 					if (_skyversion == 1) {
-						if (org._canmove > 0) {
+						if (org._canmove) {
 							org.paralyzed(this);
 						}
 					} else {
 						if (!_isenhanced) {
-							org._segColor[oseg] = Utils.ColorDARKGREEN;
-							setColor(Utils.ColorSKY);
-							org._useextraeffects =true;
+							if ((org._healing == 0) || (!org.active)) {
+								org._segColor[oseg] = Utils.ColorDARKGREEN;
+								setColor(Utils.ColorSKY);
+								org._useextraeffects =true;
+							}
 						} else {
 							org.frozen(this);
 						}
@@ -20181,7 +18594,7 @@ public class Organism extends Rectangle {
 					    setColor(Utils.ColorSKY);
 				} else {
 					if (_skyversion == 1) {
-						if (org._canmove > 0) {
+						if (org._canmove) {
 							if ((org._skyversion != 1) || (_isaplant) || (org._isaplant) || (_isaconsumer) || (org._isaconsumer) || (_isafungus) || (org._isafungus)) {
 								if (org._healing == 0) {
 									org.paralyzed(this);
@@ -20211,7 +18624,7 @@ public class Organism extends Rectangle {
 				break;
 			case MAROON:
 				if (_skyversion == 1) {
-					if (org._canmove > 0) {
+					if (org._canmove) {
 						if (org._healing == 0) {
 							org.paralyzed(this);
 						} else {
@@ -20240,7 +18653,7 @@ public class Organism extends Rectangle {
 			case ICE:
 			case DEADBARK:
 				if (_skyversion == 1) {
-					if (org._canmove > 0) {
+					if (org._canmove) {
 						if ((org._skyversion != 1) || (_isaplant) || (org._isaplant) || (_isaconsumer) || (org._isaconsumer) || (_isafungus) || (org._isafungus)) {
 							org.paralyzed(this);
 						}
@@ -20252,33 +18665,26 @@ public class Organism extends Rectangle {
 				}
 				break;
 			case DARK:
-				if ((org._framesColor <= 7) && (org._blackversion > 0)) {
+				if ((org._framesColor <= 0) && (org._blackversion > 0)) {
 					// The other organism will be shown in the color it mimicks
 					org.mimicColor();
 				} else {
-					if ((org._dodge) && (org._blackversion == 0) && (org._framesColor <= 0) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
-						org.setColor(Utils.ColorTEAL);
-						setColor(Utils.ColorSKY);
+					if (_skyversion == 1) {
+						if (org._canmove) {
+							if ((org._skyversion != 1) || (_isaplant) || (org._isaplant) || (_isaconsumer) || (org._isaconsumer) || (_isafungus) || (org._isafungus)) {
+								org.paralyzed(this);
+							}
+						}
 					} else {
-						if (_skyversion == 1) {
-							if (org._canmove > 0) {
-								if ((org._skyversion != 1) || (_isaplant) || (org._isaplant) || (_isaconsumer) || (org._isaconsumer) || (_isafungus) || (org._isafungus)) {
-									if ((org._healing == 0) || (!_isaplant) || (_isenhanced)) {
-										org.paralyzed(this);
-									}
-								}
-							}
-						} else {
-							if (!org._allfrozen) {
-								org.frozen(this);
-							}
+						if (!org._allfrozen) {
+							org.frozen(this);
 						}
 					}
 				}
 				break;
 			case CORAL:
 				if (_skyversion == 1) {
-					if (org._canmove > 0) {
+					if (org._canmove) {
 						if ((org._skyversion != 1) || (_isaplant) || (org._isaplant) || (_isaconsumer) || (org._isaconsumer) || (_isafungus) || (org._isafungus)) {
 							if ((org._healing == 0) || (!_isaplant) || (_isenhanced)) {
 								org.paralyzed(this);
@@ -20292,7 +18698,7 @@ public class Organism extends Rectangle {
 			case DARKFIRE:
 				if (org.active) {
 					if (_skyversion == 1) {
-						if (org._canmove > 0) {
+						if (org._canmove) {
 							if ((org._skyversion != 1) || (_isaplant) || (org._isaplant) || (_isaconsumer) || (org._isaconsumer) || (_isafungus) || (org._isafungus)) {
 								if ((org._healing == 0) || (!_isaplant) || (_isenhanced) || (org._segColor[oseg].equals(Utils.ColorDARKFIRE))) {
 									org.paralyzed(this);
@@ -20307,7 +18713,7 @@ public class Organism extends Rectangle {
 				} else {
 					if (!org._isfrozen) {
 						if (org._sporeversion == 1) {
-							if (useDetritus(Utils.SKY_ENERGY_CONSUMPTION)) {
+							if (useEnergy(Utils.SKY_ENERGY_CONSUMPTION)) {
 								for (int a = 0; a < org._segments; a++) {
 									switch (getTypeColor(org._segColor[a])) {
 									case FRUIT:
@@ -20325,7 +18731,7 @@ public class Organism extends Rectangle {
 							}
 						} else {
 							if ((_skyversion == 1) && (org._sporeversion == 5)) {
-								if (useDetritus(Utils.SKY_ENERGY_CONSUMPTION)) {
+								if (useEnergy(Utils.SKY_ENERGY_CONSUMPTION)) {
 									setColor(Utils.ColorSKY);
 									org._isfrozen =true;
 								}
@@ -20336,7 +18742,7 @@ public class Organism extends Rectangle {
 				break;
 			case BARK:
 				if (_skyversion == 1) {
-					if (org._canmove > 0) {
+					if (org._canmove) {
 						org.paralyzed(this);
 					}
 					org._segColor[oseg] = Utils.ColorOLDBARK;
@@ -20352,19 +18758,15 @@ public class Organism extends Rectangle {
 				break;
 			case FALLOW:
 				if (_skyversion == 1) {
-					if (org._canmove > 0) {
-						if ((org._skyversion != 1) || (_isaplant) || (org._isaplant) || (_isaconsumer) || (org._isaconsumer) || (_isafungus) || (org._isafungus)) {
-							if ((org._healing == 0) || (!_isaplant) || (_isenhanced)) {
-								org.paralyzed(this);
-							}
-						}
+					if ((org._canmove) && ((org._isaplant) || (org._isinfectious))) {
+						org.paralyzed(this);
 					}
 				}
 				break;
 			case SPIKE:
 				if ((org._isaplant) || (org._isenhanced)) {
 					if (_skyversion == 1) {
-						if (org._canmove > 0) {
+						if (org._canmove) {
 							if ((org._skyversion != 1) || (_isaplant) || (org._isaplant) || (_isaconsumer) || (org._isaconsumer) || (_isafungus) || (org._isafungus)) {
 								org.paralyzed(this);
 							}
@@ -20382,7 +18784,7 @@ public class Organism extends Rectangle {
 				break;
 			default:
 				if (_skyversion == 1) {
-					if (org._canmove > 0) {
+					if (org._canmove) {
 						if ((org._skyversion != 1) || (_isaplant) || (org._isaplant) || (_isaconsumer) || (org._isaconsumer) || (_isafungus) || (org._isafungus)) {
 							if ((org._healing == 0) || (!_isaplant) || (_isenhanced)) {
 								org.paralyzed(this);
@@ -20396,6 +18798,175 @@ public class Organism extends Rectangle {
 				}
 		    }
 		    break;
+		case OLIVE:
+			// Olive segment: Crack defense
+			switch (getTypeColor(org._segColor[oseg])) {
+			case OLIVE:
+				if (org._isaplant) {
+					if ((!_isaplant) || ((_isenhanced) && (org._isinfectious) && (!_isinfectious))) {
+						if (useEnergy(Utils.OLIVE_ENERGY_CONSUMPTION)) {
+							org._segColor[oseg] = Utils.ColorLIGHT_BLUE;
+							org._mphoto[oseg] = -20;
+							setColor(Utils.ColorOLIVE);
+							org._isinjured =true;
+						}
+					} else {
+						if ((org._isinfectious) || (!_isinfectious)) {
+							if (org.useEnergy(Utils.OLIVE_ENERGY_CONSUMPTION)) {
+						    	org._segColor[oseg] = Utils.ColorDARKOLIVE;
+						    	org._mphoto[oseg] = -20;
+						    	org._useextraeffects = true;
+						    } else {
+						    	if (useEnergy(Utils.OLIVE_ENERGY_CONSUMPTION)) {
+									org._segColor[oseg] = Utils.ColorLIGHT_BLUE;
+									org._mphoto[oseg] = -20;
+									setColor(Utils.ColorOLIVE);
+									org._isinjured =true;
+								}
+						    }
+						}
+				    }
+				}
+				break;
+			case DARKOLIVE:
+				if (org._isaplant) {
+					if ((!_isaplant) || ((_isenhanced) && (org._isinfectious) && (!_isinfectious))) {
+						if (useEnergy(Utils.OLIVE_ENERGY_CONSUMPTION)) {
+							org._segColor[oseg] = Utils.ColorLIGHT_BLUE;
+							org._mphoto[oseg] = -20;
+							setColor(Utils.ColorOLIVE);
+							org._isinjured =true;
+						}
+					}
+				}
+				break;
+			case BLUE:
+				if (org.active) {
+					if ((!_isenhanced) && ((!org._isaplant) || ((_isinfectious) && (_isaplant))) && (org.useEnergy(Utils.BLUE_ENERGY_CONSUMPTION))) {
+						setColor(Utils.ColorOLIVE);
+						org.setColor(Color.BLUE);
+					} else {
+						if (useEnergy(Utils.OLIVE_ENERGY_CONSUMPTION)) {
+							org._segColor[oseg] = Utils.ColorLIGHT_BLUE;
+							org._mphoto[oseg] = -20;
+							setColor(Utils.ColorOLIVE);
+							if (!org._isaplant) {
+								org._updateEffects = 2;
+							}
+							org._isinjured =true;
+						}
+					}
+				} else {
+					if (org._geneticCode.getModifiesspore() <= 9) {
+						if (((!_isaplant) && (!_isinfectious)) || (_iscoral) || (_isenhanced)) {
+							if (useEnergy(Utils.OLIVE_ENERGY_CONSUMPTION)) {
+								for (int a = 0; a < org._segments; a++) {
+									switch (getTypeColor(org._segColor[a])) {
+									case BLUE:
+										org._segColor[a] = Utils.ColorLIGHT_BLUE;
+										org._mphoto[a] = -20;
+										break;
+									}
+								}
+								setColor(Utils.ColorOLIVE);
+								org._framesColor = 0;
+								org._isinjured =true;
+								org._isfrozen =true;
+								org._allfrozen =true;
+							}
+						}
+					}
+				}
+				break;
+			case OCHRE:
+				if ((_isenhanced) || (org._isaplant)) {
+					if (useEnergy(Utils.OLIVE_ENERGY_CONSUMPTION)) {
+						org._segColor[oseg] = Utils.ColorLIGHT_BLUE;
+						org._mphoto[oseg] = -20;
+						setColor(Utils.ColorOLIVE);
+						org._isinjured =true;
+					}
+				}
+				break;
+			case SKY:
+			case DEEPSKY:
+				if (useEnergy(Utils.OLIVE_ENERGY_CONSUMPTION)) {
+					org._segColor[oseg] = Utils.ColorLIGHT_BLUE;
+					org._mphoto[oseg] = -20;
+					setColor(Utils.ColorOLIVE);
+					org.segmentsRestoreEffects();
+					if ((!org._isaplant) && (!org._geneticCode.getModifiessky())) {
+						org._updateEffects = 2;
+					}
+				}
+				break;
+			case LILAC:
+			case DARKLILAC:
+			case SPIKE:
+			case SPIKEPOINT:
+				if (useEnergy(Utils.OLIVE_ENERGY_CONSUMPTION)) {
+					if (org._isaplant) {
+					    org._segColor[oseg] = Utils.ColorBROKEN;
+					} else {
+						org._segColor[oseg] = Utils.ColorLIGHTBROWN;
+					}
+					org._mphoto[oseg] = -20.1;
+					setColor(Utils.ColorOLIVE);
+					org._isinjured =true;
+				}
+				break;
+			case FALLOW:
+				if (((!_isaconsumer) && (!_isafungus) && ((!_isinfectious) || (!_isaplant))) || (_isenhanced)) {
+					if (useEnergy(Utils.OLIVE_ENERGY_CONSUMPTION)) {
+						if (org._isaplant) {
+						    org._segColor[oseg] = Utils.ColorBROKEN;
+						} else {
+							org._segColor[oseg] = Utils.ColorLIGHTBROWN;
+						}
+						org._mphoto[oseg] = -20;
+						setColor(Utils.ColorOLIVE);
+						org._updateEffects = 2;
+						org._isinjured =true;
+					}
+				}
+				break;
+			case BARK:
+				if ((((!_isaplant) && (!_isaconsumer)) || (org._isaconsumer) || (_isenhanced) || (org._isenhanced)) && (org.active)) {
+					if (useEnergy(Utils.OLIVE_ENERGY_CONSUMPTION)) {
+						org._segColor[oseg] = Utils.ColorDEADBARK;
+						org._photosynthesis -= org._mphoto[oseg]*Utils.scale[org._growthRatio-1];
+						org._mphoto[oseg] = -0.5;
+						setColor(Utils.ColorOLIVE);
+						org._isfrozen =true;
+					}
+				} else {
+					org._segColor[oseg] = Utils.ColorOLDBARK;
+					if (org.active) {
+						org._photosynthesis -= org._mphoto[oseg]*Utils.scale[org._growthRatio-1];
+						org._mphoto[oseg] = -0.5;
+					}
+				}
+				break;
+			case OLDBARK:
+				if ((((!_isaplant) && (!_isaconsumer)) || (org._isaconsumer) || (_isenhanced) || (org._isenhanced)) && (org.active)) {
+					if (useEnergy(Utils.OLIVE_ENERGY_CONSUMPTION)) {
+						org._segColor[oseg] = Utils.ColorDEADBARK;
+						org._mphoto[oseg] = -0.5;
+						setColor(Utils.ColorOLIVE);
+						org._isfrozen =true;
+					}
+				}
+				break;
+			case DARK:
+				if ((org._framesColor <= 0) && (org._blackversion > 0)) {
+					// The other organism will be shown in the color it mimicks
+					org.mimicColor();
+				}
+				break;
+			default:
+				break;
+			}
+			break;
 		case LILAC:
 			// Lilac segment: Weaken organisms
 			double takenEnergyLilac = 0;
@@ -20481,50 +19052,46 @@ public class Organism extends Rectangle {
 		    	}
 		    	break;
 		    case DARK:
-		    	if (org._blackversion == 0) {
-					break;
+		    	if ((org._framesColor <= 0) && (org._blackversion > 0)) {
+					// The other organism will be shown in the color it mimicks
+					org.mimicColor();
 				} else {
-					if ((org._framesColor <= 7) && (org._blackversion > 0)) {
-						// The other organism will be shown in the color it mimicks
-						org.mimicColor();
-					} else {
-						if ((_modifieslilac) || (org._isaconsumer) || (org._isafungus) || (org._plagueversion > 0) || (org._fallowversion > 0)
-							|| ((org._iscoral) && (!_isaplant) && (!_isaconsumer))) {
-				    		if (useEnergy(Utils.LILAC_ENERGY_CONSUMPTION)) {
-				    			if (org._lavender > 0) {
-									// Get energy depending on segment length reduced by the amount of lavender
-									takenEnergyLilac = Utils.between(((10 * Math.sqrt(_m[seg])) - (org._lavender/100)) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy);
-									if (takenEnergyLilac > 0) {
-										// The other organism will be shown in dark lilac
-										org.setColor(Utils.ColorDARKLILAC);
-									} else {
-										// The other organism will be shown in light blue
-										org.setColor(Utils.ColorLIGHT_BLUE);
-									}
-									org._lavender = 0;
-								} else {
-									// Get energy depending on segment length
-									takenEnergyLilac = Utils.between((10 * Math.sqrt(_m[seg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy);
+					if ((_modifieslilac) || (org._isaconsumer) || (org._isafungus) || (org._plagueversion > 0) || (org._fallowversion > 0)
+						|| ((org._iscoral) && (!_isaplant) && (!_isaconsumer))) {
+			    		if (useEnergy(Utils.LILAC_ENERGY_CONSUMPTION)) {
+			    			if (org._lavender > 0) {
+								// Get energy depending on segment length reduced by the amount of lavender
+								takenEnergyLilac = Utils.between(((10 * Math.sqrt(_m[seg])) - (org._lavender/100)) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy);
+								if (takenEnergyLilac > 0) {
 									// The other organism will be shown in dark lilac
 									org.setColor(Utils.ColorDARKLILAC);
+								} else {
+									// The other organism will be shown in light blue
+									org.setColor(Utils.ColorLIGHT_BLUE);
 								}
-								// This organism will be shown in lilac
-								setColor(Utils.ColorLILAC);
-								// Organism has to recharge
-								if (!_isenhanced) {
-									_segColor[seg] = Utils.ColorDARKLILAC;
-									_mphoto[seg] = -20;
-									_useextraeffects = true;
-								}
+								org._lavender = 0;
+							} else {
+								// Get energy depending on segment length
+								takenEnergyLilac = Utils.between((10 * Math.sqrt(_m[seg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy);
+								// The other organism will be shown in dark lilac
+								org.setColor(Utils.ColorDARKLILAC);
 							}
-				    	}
-					}
+							// This organism will be shown in lilac
+							setColor(Utils.ColorLILAC);
+							// Organism has to recharge
+							if (!_isenhanced) {
+								_segColor[seg] = Utils.ColorDARKLILAC;
+								_mphoto[seg] = -20;
+								_useextraeffects = true;
+							}
+						}
+			    	}
 				}
 		    	break;
 		    case GRASS:
 		    	if ((_modifieslilac) || (org._isaconsumer) || (org._isafungus) || (org._plagueversion > 0) || (org._fallowversion > 0)
 		    		|| ((org._iscoral) && (!_isaplant) && (!_isaconsumer))) {
-		    		if ((org._dodge) && (org._framesColor <= 0) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
+		    		if ((org._dodge) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
 						org.setColor(Utils.ColorTEAL);
 						setColor(Utils.ColorLILAC);
 					} else {
@@ -20561,7 +19128,7 @@ public class Organism extends Rectangle {
 			case LEAF:
 				if ((_modifieslilac) || (org._isaconsumer) || (org._isafungus) || (org._plagueversion > 0) || (org._fallowversion > 0)
 					|| ((org._iscoral) && (!_isaplant) && (!_isaconsumer))) {
-					if ((org._dodge) && (org._framesColor <= 0) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
+		    		if ((org._dodge) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
 						org.setColor(Utils.ColorTEAL);
 						setColor(Utils.ColorLILAC);
 					} else {
@@ -20602,7 +19169,6 @@ public class Organism extends Rectangle {
 					}
 		    	}
 		    	break;
-			case PLANKTON:
 			case GREEN:
 			case FOREST:
 			case SPRING:
@@ -20616,7 +19182,6 @@ public class Organism extends Rectangle {
 			case PURPLE:
 			case TEAL:
 			case CYAN:
-			case SPIN:
 			case YELLOW:
 			case AUBURN:
 			case INDIGO:
@@ -20627,7 +19192,7 @@ public class Organism extends Rectangle {
 			case SPORE:
 				if ((_modifieslilac) || (org._isaconsumer) || (org._isafungus) || (org._plagueversion > 0) || (org._fallowversion > 0)
 					|| ((org._iscoral) && (!_isaplant) && (!_isaconsumer))) {
-					if ((org._dodge) && (org._framesColor <= 0) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
+		    		if ((org._dodge) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
 						org.setColor(Utils.ColorTEAL);
 						setColor(Utils.ColorLILAC);
 					} else {
@@ -20664,7 +19229,7 @@ public class Organism extends Rectangle {
 		    case BLUE:
 				if (org.useEnergy(Utils.BLUE_ENERGY_CONSUMPTION)) {
 					if (org._isenhanced) {
-					    useDetritus(Utils.between((0.5 * Math.sqrt(org._m[oseg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, _energy));
+					    useEnergy(Utils.between((0.5 * Math.sqrt(org._m[oseg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, _energy));
 						setColor(Utils.ColorDARKLILAC);
 						if (_energy < Utils.tol) {
 							die(org);
@@ -20738,13 +19303,55 @@ public class Organism extends Rectangle {
 				}
 				break;
 		    case LAVENDER:
+		    	if (_altruist) {
+	            break;
+		    	} else {
+					if ((org._dodge) && (org._framesColor <= 0) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
+						org.setColor(Utils.ColorTEAL);
+						setColor(Utils.ColorLILAC);
+					} else {
+						if (useEnergy(Utils.LILAC_ENERGY_CONSUMPTION)) {
+							if (org._isenhanced) {
+								// The other organism will be shown in lavender
+								org.setColor(Utils.ColorLAVENDER);
+							} else {
+								if (org._lavender > 0) {
+									// Get energy depending on segment length reduced by the amount of lavender
+									takenEnergyLilac = Utils.between(((10 * Math.sqrt(_m[seg])) - (org._lavender/100)) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy);
+									if (takenEnergyLilac > 0) {
+										// The other organism will be shown in dark lilac
+										org.setColor(Utils.ColorDARKLILAC);
+									} else {
+										// The other organism will be shown in light blue
+										org.setColor(Utils.ColorLIGHT_BLUE);
+									}
+									org._lavender = 0;
+								} else {
+									// Get energy depending on segment length
+									takenEnergyLilac = Utils.between((10 * Math.sqrt(_m[seg])) * Utils.ORGANIC_OBTAINED_ENERGY, 0, org._energy);
+									// The other organism will be shown in dark lilac
+									org.setColor(Utils.ColorDARKLILAC);
+								}
+							}
+							// This organism will be shown in lilac
+							setColor(Utils.ColorLILAC);
+							// Organism has to recharge
+							if (!_isenhanced) {
+								_segColor[seg] = Utils.ColorDARKLILAC;
+								_mphoto[seg] = -20;
+								_useextraeffects = true;
+							}
+						}
+					}
+				}
+				break;
 		    case MINT:
 		    case MAGENTA:
 		    case ROSE:
 				if (_altruist) {
                 break;
 				} else {
-					if ((org._dodge) && (org._framesColor <= 0) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
+					if ((org._dodge) && (org.useEnergy(Utils.DODGE_ENERGY_CONSUMPTION))) {
 						org.setColor(Utils.ColorTEAL);
 						setColor(Utils.ColorLILAC);
 					} else {
@@ -20904,137 +19511,6 @@ public class Organism extends Rectangle {
 			// energy interchange
 			if (takenEnergyLilac > 0) {
 				org.useEnergy(takenEnergyLilac);
-			}
-			break;
-		case DARK:
-			// Black segment: Versions 5 and 6 force an overreaction of organisms defense
-			if (org._hasdodged == false) {
-				org._hasdodged =true;
-		    }
-			switch (getTypeColor(org._segColor[oseg])) {
-			case DARK:
-			case FALLOW:
-			case PLAGUE:
-			case CORAL:
-			case LAVENDER:
-			case DARKOLIVE:
-		    case MINT:
-		    case MAGENTA:
-		    case ROSE:
-		    case BROWN:
-				break;
-			case BLUE:
-				if (!org._hasgoodvision) {
-					if ((org.active) && (org.useEnergy((2 * Utils.BLUE_ENERGY_CONSUMPTION) + 0.1))) {
-						setColor(Utils.ColorDARK);
-				        org.setColor(Color.BLUE);
-			        }
-				}
-				break;
-			case SKY:
-                if (!org._hasgoodvision) {
-                	if (org.useDetritus((2 * Utils.SKY_ENERGY_CONSUMPTION) + 0.1)) {
-    					org._segColor[oseg] = Utils.ColorDEEPSKY;
-    					org._mphoto[oseg] = -20;
-    					org._useextraeffects = true;
-    					setColor(Utils.ColorDARK);
-    					org.setColor(Utils.ColorDEEPSKY);
-    				}
-				}
-				break;
-			case DEEPSKY:
-                if (!org._hasgoodvision) {
-    				setColor(Utils.ColorDARK);
-    				org.setColor(Utils.ColorDEEPSKY);
-				}
-				break;
-			case OCHRE:
-                if (!org._hasgoodvision) {
-                	if ((org._isaplant && org.useEnergy(Utils.OCHRE_ENERGY_CONSUMPTION + 0.1)) || (!org._isaplant && org.useEnergy((Utils.OCHRE_ENERGY_CONSUMPTION/1000) + 0.1))) {
-    					setColor(Utils.ColorDARK);
-    					org.setColor(Utils.ColorOCHRE);
-    				}
-				}
-				break;
-			case OLIVE:
-                if (!org._hasgoodvision) {
-                	if (org.useEnergy((2 * Utils.OLIVE_ENERGY_CONSUMPTION) + 0.1)) {
-    					org._segColor[oseg] = Utils.ColorDARKOLIVE;
-    			    	org._mphoto[oseg] = -20;
-    			    	org._useextraeffects = true;
-    					setColor(Utils.ColorDARK);
-    				}
-				}
-				break;
-			case LIGHT_BLUE:
-                if (!org._hasgoodvision) {
-                	if ((org.active) && (org.useEnergy((2 * Utils.BLUE_ENERGY_CONSUMPTION) + 0.1))) {
-    					setColor(Utils.ColorDARK);
-    					org.setColor(Utils.ColorLIGHT_BLUE);
-    				}
-				}
-				break;
-			case BARK:
-			case OLDBARK:
-                if (!org._hasgoodvision) {
-                	if ((org.active) && (org._mphoto[oseg] != -0.6)) {
-    					for (int a = 0; a < org._segments; a++) {
-    						switch (getTypeColor(org._segColor[a])) {
-    						case OLDBARK:
-    							org._mphoto[a] = -0.6;
-    							break;
-    						case BARK:
-    							setColor(Utils.ColorDARK);
-    							org._segColor[a] = Utils.ColorOLDBARK;
-    							org._photosynthesis -= org._mphoto[a]*Utils.scale[org._growthRatio-1];
-    							org._mphoto[a] = -0.6;
-    							break;
-    						}
-    					}
-    				}
-				}
-				break;
-			case LILAC:
-                if (!org._hasgoodvision) {
-                	org._segColor[oseg] = Utils.ColorDARKLILAC;
-    				org._mphoto[oseg] = -20;
-    				org._useextraeffects = true;
-    				setColor(Utils.ColorDARK);
-				}
-				break;
-			case SPIKEPOINT:
-                if (!org._hasgoodvision) {
-                	if (org._isenhanced) {
-    					if (org._lavender > 0) {
-    			    		org._lavender = 0;
-    			    		setColor(Utils.ColorDARK);
-    			    		org.setColor(Utils.ColorLIGHT_BLUE);
-    			    	}
-    			    	if (org._healing > 0) {
-    						org.tricked(this);
-    					}
-    			    	if ((org._antiviral > 0) && (org.useEnergy((2 * Utils.MINT_ENERGY_CONSUMPTION) + 0.1))) {
-    			    		setColor(Utils.ColorDARK);
-    			    		org.setColor(Utils.ColorMINT);
-    			    	}
-    				}
-				}
-				break;
-		    default:
-                if (!org._hasgoodvision) {
-                	if (org._lavender > 0) {
-    		    		org._lavender = 0;
-    		    		setColor(Utils.ColorDARK);
-    		    		org.setColor(Utils.ColorLIGHT_BLUE);
-    		    	}
-    		    	if (org._healing > 0) {
-    					org.tricked(this);
-    				}
-    		    	if ((org._antiviral > 0) && (org.useEnergy((2 * Utils.MINT_ENERGY_CONSUMPTION) + 0.1))) {
-    		    		setColor(Utils.ColorDARK);
-    		    		org.setColor(Utils.ColorMINT);
-    		    	}
-				}
 			}
 			break;
 		// Spore hatching
@@ -21492,7 +19968,6 @@ public class Organism extends Rectangle {
 		    	case DARKFIRE:
 		    	case ORANGE:
 		    	case MAROON:
-		    	case CRIMSON:
 		    	case AUBURN:
 		    	case GOLD:
 		    	case PINK:
@@ -21726,7 +20201,6 @@ public class Organism extends Rectangle {
 			    	case DARKFIRE:
 			    	case ORANGE:
 			    	case MAROON:
-			    	case CRIMSON:
 			    	case AUBURN:
 			    	case GOLD:
 			    	case PINK:
@@ -22084,7 +20558,6 @@ public class Organism extends Rectangle {
 			_forestphoto = 0;
 			_leafphoto = 0;
 			_methanotrophy = 0;
-			_filterfeeding = 0;
 			for (i=_segments-1; i>=0; i--) {
 				if (_mphoto[i] > 0) {
 					// Manteniment
@@ -22105,10 +20578,6 @@ public class Organism extends Rectangle {
 						addphoto += _mphoto[i];
 						_leafphoto += _mphoto[i];
 						break;
-					case PLANKTON:
-						_filterfeeding += _mphoto[i];
-						addmaintenance -= 0.32 * _m[i];
-						break;
 					case PURPLE:
 						_methanotrophy += _mphoto[i];
 						addmaintenance -= 0.99 * _m[i];
@@ -22124,10 +20593,6 @@ public class Organism extends Rectangle {
 						if (_mphoto[i] == 0) {
 							// Manteniment
 							switch (getTypeColor(_segColor[i])) {
-							// Organisms with spin segments rotate
-							case SPIN:
-								addmaintenance -= 0.99 * _m[i];
-								break;
 							// Organisms with indigo segments reduce the energy the new born virus receives
 							case INDIGO:
 								addmaintenance -= 0.8 * _m[i];
@@ -22164,7 +20629,7 @@ public class Organism extends Rectangle {
 							switch (getTypeColor(_segColor[i])) {
 							// is a consumer
 							case MAROON:
-								addmaintenance -= 0.875 * _m[i];
+								addmaintenance -= 0.8 * _m[i];
 								break;
 							// is a fungus
 							case PINK:
@@ -22229,10 +20694,6 @@ public class Organism extends Rectangle {
 											addmaintenance -= (0.75 * _m[i]) - (Utils.ROSE_ENERGY_CONSUMPTION * _m[i]);
 										}
 										break;
-									// Organisms with dark segments mimic other segments
-									case DARK:
-										addmaintenance -= _m[i] - (Utils.DARK_ENERGY_CONSUMPTION * _m[i]);
-										break;
 									}
 								}
 							}
@@ -22242,12 +20703,6 @@ public class Organism extends Rectangle {
 			}
 			// Effective maintenance used for breathing
 			_maintenance = (addmaintenance / Utils.SEGMENT_COST_DIVISOR);
-			// Scale filter feeding, not for some enhanced ones
-			if (_filterfeeding > 0) {
-				if (_isplankton == 1) {
-					_filterfeeding = (_filterfeeding*Utils.scale[_growthRatio-1]);
-				}
-			}
 			// Get chemotrophic energy from methane
 			if (_methanotrophy > 0) {
 				_methanotrophy = (_methanotrophy*Utils.scale[_growthRatio-1]);
@@ -22272,7 +20727,6 @@ public class Organism extends Rectangle {
 					    	case DARKFIRE:
 					    	case ORANGE:
 					    	case MAROON:
-					    	case CRIMSON:
 					    	case AUBURN:
 					    	case GOLD:
 					    	case PINK:
@@ -22362,7 +20816,6 @@ public class Organism extends Rectangle {
 			_forestphoto = 0;
 			_leafphoto = 0;
 			_methanotrophy = 0;
-			_filterfeeding = 0;
 			for (i=_segments-1; i>=0; i--) {
 				if (_mphoto[i] > 0) {
 					// Manteniment
@@ -22407,10 +20860,6 @@ public class Organism extends Rectangle {
 						break;
 					case BARK:
 						addphoto += _mphoto[i];
-						break;
-					case PLANKTON:
-						_filterfeeding += _mphoto[i];
-						addmaintenance -= 0.32 * _m[i];
 						break;
 					case PURPLE:
 						_methanotrophy += _mphoto[i];
@@ -22527,10 +20976,6 @@ public class Organism extends Rectangle {
 						if (_mphoto[i] == 0) {
 							// Manteniment
 							switch (getTypeColor(_segColor[i])) {
-							// Organisms with spin segments rotate
-							case SPIN:
-								addmaintenance -= 0.99 * _m[i];
-								break;
 							// Organisms with indigo segments reduce the energy the new born virus receives
 							case INDIGO:
 								addmaintenance -= 0.8 * _m[i];
@@ -22567,7 +21012,7 @@ public class Organism extends Rectangle {
 							switch (getTypeColor(_segColor[i])) {
 							// is a consumer
 							case MAROON:
-								addmaintenance -= 0.875 * _m[i];
+								addmaintenance -= 0.8 * _m[i];
 								break;
 							// is a fungus
 							case PINK:
@@ -22700,10 +21145,6 @@ public class Organism extends Rectangle {
 											addmaintenance -= (0.75 * _m[i]) - (Utils.ROSE_ENERGY_CONSUMPTION * _m[i]);
 										}
 										break;
-									// Organisms with dark segments mimic other segments
-									case DARK:
-										addmaintenance -= _m[i] - (Utils.DARK_ENERGY_CONSUMPTION * _m[i]);
-										break;
 									}
 								}
 							}
@@ -22713,12 +21154,6 @@ public class Organism extends Rectangle {
 			}
 			// Effective maintenance used for breathing
 			_maintenance = (addmaintenance / Utils.SEGMENT_COST_DIVISOR);
-			// Scale filter feeding, not for some enhanced ones
-			if (_filterfeeding > 0) {
-				if (_isplankton == 1) {
-					_filterfeeding = (_filterfeeding*Utils.scale[_growthRatio-1]);
-				}
-			}
 			// Get chemotrophic energy from methane
 			if (_methanotrophy > 0) {
 				_methanotrophy = (_methanotrophy*Utils.scale[_growthRatio-1]);
@@ -22743,7 +21178,6 @@ public class Organism extends Rectangle {
 					    	case DARKFIRE:
 					    	case ORANGE:
 					    	case MAROON:
-					    	case CRIMSON:
 					    	case AUBURN:
 					    	case GOLD:
 					    	case PINK:
@@ -22922,10 +21356,6 @@ public class Organism extends Rectangle {
 						if (_mphoto[i] >= -0.2) {
 							// Manteniment
 							switch (getTypeColor(_segColor[i])) {
-							// Organisms with spin segments rotate
-							case SPIN:
-								addmaintenance -= 0.99 * _m[i];
-								break;
 							// Organisms with indigo segments reduce the energy the new born virus receives
 							case INDIGO:
 								if (_isonlyc4 == 2) {
@@ -22936,7 +21366,11 @@ public class Organism extends Rectangle {
 								break;
 							// Organism will create spores
 							case SPORE:
-								addmaintenance -= 0.99 * _m[i];
+								if (_isonlyc4 == 2) {
+									addmaintenance -= _m[i];
+								} else {
+									addmaintenance -= 0.99 * _m[i];
+								}
 								break;
 							// Auburn always has one real child if infected
 							case AUBURN:
@@ -22984,17 +21418,11 @@ public class Organism extends Rectangle {
 							switch (getTypeColor(_segColor[i])) {
 							// is a consumer
 							case MAROON:
-								addmaintenance -= 0.875 * _m[i];
+								addmaintenance -= 0.8 * _m[i];
 								break;
 							// is a fungus
 							case PINK:
 								addmaintenance -= 0.8 * _m[i];
-								break;
-							// is silver
-							case SILVER:
-								if (_isonlyc4 == 2) {
-									addmaintenance -= _m[i];
-								}
 								break;
 							}
 						} else {
@@ -23108,7 +21536,7 @@ public class Organism extends Rectangle {
 									// Organisms with coral segments transform viruses into themselves
 									case CORAL:
 										if (_isonlyc4 == 3) {
-											addmaintenance -= 0.99 * _m[i];
+											addmaintenance -= 0.95 * _m[i];
 										}
 										break;
 									// Organisms with fallow segments inhibit the reproduction of other organisms
@@ -23132,10 +21560,6 @@ public class Organism extends Rectangle {
 										} else {
 											addmaintenance -= (0.75 * _m[i]) - (Utils.ROSE_ENERGY_CONSUMPTION * _m[i]);
 										}
-										break;
-									// Organisms with dark segments mimic other segments
-									case DARK:
-										addmaintenance -= _m[i] - (Utils.DARK_ENERGY_CONSUMPTION * _m[i]);
 										break;
 									}
 								}
@@ -23175,10 +21599,6 @@ public class Organism extends Rectangle {
 					if (_mphoto[i] >= -0.1) {
 						// Manteniment
 						switch (getTypeColor(_segColor[i])) {
-						// Organisms with spin segments rotate
-						case SPIN:
-							addmaintenance -= 0.99 * _m[i];
-							break;
 						// Organisms with indigo segments reduce the energy the new born virus receives
 						case INDIGO:
 							addmaintenance -= 0.8 * _m[i];
@@ -23223,7 +21643,7 @@ public class Organism extends Rectangle {
 						switch (getTypeColor(_segColor[i])) {
 						// is a consumer
 						case MAROON:
-							addmaintenance -= 0.875 * _m[i];
+							addmaintenance -= 0.8 * _m[i];
 							break;
 						// is a fungus
 						case PINK:
@@ -23357,7 +21777,7 @@ public class Organism extends Rectangle {
 								// Organisms with coral segments transform viruses into themselves
 								case CORAL:
 									if ((_reproducelate > 0) && (!_isinfectious) && (!_isaconsumer) && (!_isafungus)) {
-										addmaintenance -= 0.99 * _m[i];
+										addmaintenance -= 0.95 * _m[i];
 									}
 									break;
 								// Organisms with fallow segments inhibit the reproduction of other organisms
@@ -23383,10 +21803,6 @@ public class Organism extends Rectangle {
 									} else {
 										addmaintenance -= (0.75 * _m[i]) - (Utils.ROSE_ENERGY_CONSUMPTION * _m[i]);
 									}
-									break;
-								// Organisms with dark segments mimic other segments
-								case DARK:
-									addmaintenance -= _m[i] - (Utils.DARK_ENERGY_CONSUMPTION * _m[i]);
 									break;
 								}
 							}
@@ -23466,62 +21882,59 @@ public class Organism extends Rectangle {
 	private static final int GRASS=8;
 	private static final int BARK=9;
 	private static final int PURPLE=10;
-	private static final int PLANKTON=11;
-	private static final int RED=12;
-	private static final int FIRE=13;
-	private static final int ORANGE=14;
-	private static final int MAROON=15;
-	private static final int CRIMSON=16;
-	private static final int PINK=17;
-	private static final int CREAM=18;
-	private static final int SILVER=19;
-	private static final int SPIKE=20;
-	private static final int LILAC=21;
-	private static final int GRAY=22;
-	private static final int VIOLET=23;
-	private static final int OLIVE=24;
-	private static final int SKY=25;
-	private static final int BLUE=26;
-	private static final int OCHRE=27;
-	private static final int FALLOW=28;
-	private static final int SPORE=29;
-	private static final int WHITE=30;
-	private static final int PLAGUE=31;
-	private static final int CORAL=32;
-	private static final int MINT=33;
-	private static final int LAVENDER=34;
-	private static final int MAGENTA=35;
-	private static final int ROSE=36;
-	private static final int CYAN=37;
-	private static final int TEAL=38;
-	private static final int SPIN=39;
-	private static final int YELLOW=40;
-	private static final int AUBURN=41;
-	private static final int INDIGO=42;
-	private static final int BLOND=43;
-	private static final int FLOWER=44;
-	private static final int DARKGRAY=45;
-	private static final int GOLD=46;
-	private static final int DARK=47;
-	private static final int EYE=48;
-	private static final int WINTER=49;
-	private static final int OLDBARK=50;
-	private static final int DARKJADE=51;
-	private static final int DARKGREEN=52;
-	private static final int DARKFIRE=53;
-	private static final int DARKLILAC=54;
-	private static final int DEEPSKY=55;
-	private static final int DARKOLIVE=56;
-	private static final int SPIKEPOINT=57;
-	private static final int FRUIT=58;
-	private static final int VISION=59;
-	private static final int ICE=60;
-	private static final int LIGHT_BLUE=61;
-	private static final int LIGHTBROWN=62;
-	private static final int GREENBROWN=63;
-	private static final int BROKEN=64;
-	private static final int DEADBARK=65;
-	private static final int BROWN=66;
+	private static final int RED=11;
+	private static final int FIRE=12;
+	private static final int ORANGE=13;
+	private static final int MAROON=14;
+	private static final int PINK=15;
+	private static final int CREAM=16;
+	private static final int SILVER=17;
+	private static final int SPIKE=18;
+	private static final int LILAC=19;
+	private static final int GRAY=20;
+	private static final int VIOLET=21;
+	private static final int OLIVE=22;
+	private static final int SKY=23;
+	private static final int BLUE=24;
+	private static final int OCHRE=25;
+	private static final int FALLOW=26;
+	private static final int SPORE=27;
+	private static final int WHITE=28;
+	private static final int PLAGUE=29;
+	private static final int CORAL=30;
+	private static final int MINT=31;
+	private static final int LAVENDER=32;
+	private static final int MAGENTA=33;
+	private static final int ROSE=34;
+	private static final int CYAN=35;
+	private static final int TEAL=36;
+	private static final int YELLOW=37;
+	private static final int AUBURN=38;
+	private static final int INDIGO=39;
+	private static final int BLOND=40;
+	private static final int FLOWER=41;
+	private static final int DARKGRAY=42;
+	private static final int GOLD=43;
+	private static final int DARK=44;
+	private static final int EYE=45;
+	private static final int WINTER=46;
+	private static final int OLDBARK=47;
+	private static final int DARKJADE=48;
+	private static final int DARKGREEN=49;
+	private static final int DARKFIRE=50;
+	private static final int DARKLILAC=51;
+	private static final int DEEPSKY=52;
+	private static final int DARKOLIVE=53;
+	private static final int SPIKEPOINT=54;
+	private static final int FRUIT=55;
+	private static final int VISION=56;
+	private static final int ICE=57;
+	private static final int LIGHT_BLUE=58;
+	private static final int LIGHTBROWN=59;
+	private static final int GREENBROWN=60;
+	private static final int BROKEN=61;
+	private static final int DEADBARK=62;
+	private static final int BROWN=63;
 	private static final int getTypeColor(Color c) {
 		if (c.equals(Color.GREEN))
 			return GREEN;
@@ -23545,8 +21958,6 @@ public class Organism extends Rectangle {
 			return BARK;
 		if (c.equals(Utils.ColorPURPLE))
 			return PURPLE;
-		if (c.equals(Utils.ColorPLANKTON))
-			return PLANKTON;
 		if (c.equals(Color.RED))
 			return RED;
 		if (c.equals(Utils.ColorFIRE))
@@ -23555,8 +21966,6 @@ public class Organism extends Rectangle {
 			return ORANGE;
 		if (c.equals(Utils.ColorMAROON))
 			return MAROON;
-		if (c.equals(Utils.ColorCRIMSON))
-			return CRIMSON;
 		if (c.equals(Color.PINK))
 			return PINK;
 		if (c.equals(Utils.ColorCREAM))
@@ -23601,8 +22010,6 @@ public class Organism extends Rectangle {
 			return CYAN;
 		if (c.equals(Utils.ColorTEAL))
 			return TEAL;
-		if (c.equals(Utils.ColorSPIN))
-			return SPIN;
 		if (c.equals(Color.YELLOW))
 			return YELLOW;
 		if (c.equals(Utils.ColorAUBURN))
@@ -23660,10 +22067,6 @@ public class Organism extends Rectangle {
 		return NOCOLOR;
 	}
 
-	public static final GeneColor getGeneColor(Color c) {
-		return GeneColor.getColor(getTypeColor(c));
-	}
-
 	private final void setColor(Color c) {
 		_color = c;
 		_framesColor = 10;
@@ -23694,18 +22097,5 @@ public class Organism extends Rectangle {
 				g.drawLine(x1[i] -x + _centerX, y1[i] - y + _centerY, x2[i] - x + _centerX, y2[i] - y+_centerY);
 		}
 		return image;
-	}
-
-	@Override
-	public int hashCode() {
-		return _ID; // i assume ID is unique
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (obj instanceof Organism) {
-			return _ID == ((Organism)obj)._ID;
-		}
-		return false;
 	}
 }

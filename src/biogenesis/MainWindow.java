@@ -20,14 +20,9 @@
 package biogenesis;
 
 import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.Frame;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
@@ -66,14 +61,11 @@ import javax.swing.JPanel;
 import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
 import javax.swing.JToolBar;
-import javax.swing.JViewport;
 import javax.swing.KeyStroke;
+import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.WindowConstants;
 import javax.swing.border.EtchedBorder;
-
-import biogenesis.gui.LogsDialog;
-import biogenesis.gui.stats.StatisticsWindow;
 
 public class MainWindow extends JFrame implements MainWindowInterface {
 	private static final long serialVersionUID = Utils.FILE_VERSION;
@@ -83,8 +75,8 @@ public class MainWindow extends JFrame implements MainWindowInterface {
 	protected boolean _isProcessActive = false;
 	protected transient java.util.Timer _timer;
 	protected transient Thread workerThread = null;
-	protected JFileChooser worldChooser = new JFileChooserWithRemember();
-	protected JFileChooser geneticCodeChooser = new JFileChooserWithRemember();
+	protected JFileChooser worldChooser = new JFileChooser();
+	protected JFileChooser geneticCodeChooser = new JFileChooser();
 	protected BioFile _gameFile = null;
 
 	protected JScrollPane scrollPane;
@@ -96,8 +88,6 @@ public class MainWindow extends JFrame implements MainWindowInterface {
 	protected StdAction decreaseCO2Action;
 	protected StdAction increaseCH4Action;
 	protected StdAction decreaseCH4Action;
-	protected StdAction increaseDetritusAction;
-	protected StdAction decreaseDetritusAction;
 	protected StdAction manageConnectionsAction;
 	protected StdAction abortTrackingAction;
 	protected StdAction openGameAction;
@@ -108,7 +98,6 @@ public class MainWindow extends JFrame implements MainWindowInterface {
 	protected StdAction killAllAction;
 	protected StdAction disperseAllAction;
 	protected StdAction parametersAction;
-	protected StdAction logsAction;
 	protected StdAction aboutAction;
 	protected StdAction manualAction;
 	protected StdAction checkLastVersionAction;
@@ -182,9 +171,6 @@ public class MainWindow extends JFrame implements MainWindowInterface {
 		createMenu();
 		createToolBar();
 		setControls();
-		setResizable(true);
-		setSize(new Dimension(Utils.WINDOW_WIDTH, Utils.WINDOW_HEIGHT));
-		WindowManager.registerWindow(this, getWidth(), getHeight(), 0, 0);
 		configureApp();
 		_world = new World(_visibleWorld);
 		startApp();
@@ -215,8 +201,6 @@ public class MainWindow extends JFrame implements MainWindowInterface {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		System.setOut(new java.io.PrintStream(LogCollector.getInstance()));
-		System.setErr(new java.io.PrintStream(LogCollector.getInstance()));
 		if (args.length > 1) {
 			System.err.println("java -jar biogenesis.jar [random seed]");
 		} else if (args.length == 1) {
@@ -257,12 +241,9 @@ public class MainWindow extends JFrame implements MainWindowInterface {
 		labAction = new LabAction("T_GENETIC_LABORATORY", null, "T_GENETIC_LABORATORY"); //$NON-NLS-1$ //$NON-NLS-2$
 		increaseCH4Action = new IncreaseCH4Action("T_INCREASE_CH4", null, "T_INCREASE_CH4"); //$NON-NLS-1$ //$NON-NLS-2$
 		decreaseCH4Action = new DecreaseCH4Action("T_DECREASE_CH4", null, "T_DECREASE_CH4"); //$NON-NLS-1$ //$NON-NLS-2$
-		increaseDetritusAction = new IncreaseDetritusAction("T_INCREASE_DETRITUS", null, "T_INCREASE_DETRITUS"); //$NON-NLS-1$ //$NON-NLS-2$
-		decreaseDetritusAction = new DecreaseDetritusAction("T_DECREASE_DETRITUS", null, "T_DECREASE_DETRITUS"); //$NON-NLS-1$ //$NON-NLS-2$
 		killAllAction = new KillAllAction("T_KILL_ALL", null, "T_KILL_ALL_ORGANISMS"); //$NON-NLS-1$ //$NON-NLS-2$
 		disperseAllAction = new DisperseAllAction("T_DISPERSE_ALL", null, "T_DISPERSE_ALL_DEAD_ORGANISMS"); //$NON-NLS-1$ //$NON-NLS-2$
 		parametersAction = new ParametersAction("T_PARAMETERS", null, "T_EDIT_PARAMETERS"); //$NON-NLS-1$ //$NON-NLS-2$
-		logsAction = new LogsAction("T_LOGS", null, "T_SHOW_HIDE_LOGS"); //$NON-NLS-1$ //$NON-NLS-2$
 		aboutAction = new AboutAction("T_ABOUT", null, "T_ABOUT"); //$NON-NLS-1$//$NON-NLS-2$
 		manualAction = new ManualAction("T_USER_MANUAL", null, "T_USER_MANUAL"); //$NON-NLS-1$//$NON-NLS-2$
 		checkLastVersionAction = new CheckLastVersionAction("T_CHECK_LAST_VERSION", null, "T_CHECK_LAST_VERSION"); //$NON-NLS-1$ //$NON-NLS-2$
@@ -324,8 +305,6 @@ public class MainWindow extends JFrame implements MainWindowInterface {
 		_menuGlobal.add(menuItem);
 		_menuGlobal.add(new JMenuItem(increaseCH4Action));
 		_menuGlobal.add(new JMenuItem(decreaseCH4Action));
-		_menuGlobal.add(new JMenuItem(increaseDetritusAction));
-		_menuGlobal.add(new JMenuItem(decreaseDetritusAction));
 		_menuGlobal.add(new JMenuItem(killAllAction));
 		_menuGlobal.add(new JMenuItem(disperseAllAction));
 		_menuNet = new JMenu(Messages.getString("T_NETWORK")); //$NON-NLS-1$
@@ -341,7 +320,6 @@ public class MainWindow extends JFrame implements MainWindowInterface {
 		_menuWorld.add(new JMenuItem(statisticsAction));
 		_menuWorld.add(new JMenuItem(labAction));
 		_menuWorld.add(new JMenuItem(parametersAction));
-		_menuWorld.add(new JMenuItem(logsAction));
 		_menuHelp = new JMenu(Messages.getString("T_HELP")); //$NON-NLS-1$
 		_menuHelp.setMnemonic(Messages.getMnemonic("T_HELP").intValue()); //$NON-NLS-1$
 		menuBar.add(_menuHelp);
@@ -545,37 +523,25 @@ public class MainWindow extends JFrame implements MainWindowInterface {
 		}
 
 		public void actionPerformed(ActionEvent e) {
-			try {
-				if (_gameFile != null) {
-					saveObject(_world, _gameFile.getFileForTime(_world.getTime(), BioFile.Type.REGULAR));
-					if (Utils.AUTO_BACKUP_WORLD_PNG) {
-						_isProcessActive = false;
-						java.awt.EventQueue.invokeAndWait(() -> saveWorldImage(_gameFile.getFileForTime(_world.getTime(), BioFile.Type.WORLD)));
-						_isProcessActive = true;
-					}
-					if (Utils.AUTO_BACKUP_CLADES_PNG) {
-						_isProcessActive = false;
-						java.awt.EventQueue.invokeAndWait(() -> saveCladeImage(_gameFile.getFileForTime(_world.getTime(), BioFile.Type.CLADES)));
-						_isProcessActive = true;
-					}
-					GsonFileSaver.saveWorldJson(_world, _gameFile.getFileForTime(_world.getTime(), BioFile.Type.JSON));
-					if (Utils.AUTO_BACKUP_STATISTICS_PNG && _statisticsWindow != null) {
-						// Apparently we have to wait for the statisticsWindow to repaint, it seems like
-						// `repaintStats()` just enqueus an AWT job to repaint the dialog and the method
-						// returns before it has been repainted. So we need to save the image in an AWT
-						// job to make sure the repaint has been done before the saving.
-						_statisticsWindow.repaintStats();
-						_isProcessActive = false;
-						java.awt.EventQueue.invokeAndWait(() -> saveStatisticsImage(_gameFile.getFileForTime(_world.getTime(), BioFile.Type.STATS)));
-						_isProcessActive = true;
-					}
-				} else {
-					java.awt.EventQueue.invokeAndWait(() -> saveGameAs());
+			if (_gameFile != null) {
+				saveObject(_world, _gameFile.getFileForTime(_world.getTime(), BioFile.Type.REGULAR));
+				if (Utils.AUTO_BACKUP_WORLD_PNG) {
+					boolean processState = _isProcessActive;
+					_isProcessActive = false;
+					saveWorldImage(_gameFile.getFileForTime(_world.getTime(), BioFile.Type.WORLD));
+					_isProcessActive = processState;
 				}
-			} catch (InvocationTargetException | InterruptedException e1) {
-				System.out.println("Error saving game: " + e);
-				e1.printStackTrace();
-			}
+				GsonFileSaver.saveWorldJson(_world, _gameFile.getFileForTime(_world.getTime(), BioFile.Type.JSON));
+				if (Utils.AUTO_BACKUP_STATISTICS_PNG && _statisticsWindow != null) {
+					// Apparently we have to wait for the statisticsWindow to repaint, it seems like
+					// `repaintStats()` just enqueus an AWT job to repaint the dialog and the method
+					// returns before it has been repainted. So we need to save the image in an AWT
+					// job to make sure the repaint has been done before the saving.
+					_statisticsWindow.repaintStats();
+					SwingUtilities.invokeLater(() -> saveStatisticsImage(_gameFile.getFileForTime(_world.getTime(), BioFile.Type.STATS)));
+				}
+			} else
+				saveGameAs();
 		}
 
 		@Override
@@ -633,30 +599,6 @@ public class MainWindow extends JFrame implements MainWindowInterface {
 		}
 	}
 
-	class IncreaseDetritusAction extends StdAction {
-		private static final long serialVersionUID = 1L;
-
-		public IncreaseDetritusAction(String text, String icon_path, String desc) {
-			super(text, icon_path, desc);
-		}
-
-		public void actionPerformed(ActionEvent e) {
-			_world.addDetritus(1000);
-		}
-	}
-
-	class DecreaseDetritusAction extends StdAction {
-		private static final long serialVersionUID = 1L;
-
-		public DecreaseDetritusAction(String text, String icon_path, String desc) {
-			super(text, icon_path, desc);
-		}
-
-		public void actionPerformed(ActionEvent e) {
-			_world.decreaseDetritus(1000);
-		}
-	}
-
 	class ManageConnectionsAction extends StdAction {
 		private static final long serialVersionUID = 1L;
 
@@ -697,7 +639,7 @@ public class MainWindow extends JFrame implements MainWindowInterface {
 				// Ask for file name
 				JFileChooser chooser = new JFileChooser();
 				chooser.setFileFilter(new BioFileFilter("png")); //$NON-NLS-1$
-				int returnVal = chooser.showSaveDialog(MainWindow.this);
+				int returnVal = chooser.showSaveDialog(null);
 				if (returnVal == JFileChooser.APPROVE_OPTION) {
 					int canWrite = JOptionPane.YES_OPTION;
 					File f = chooser.getSelectedFile();
@@ -711,7 +653,7 @@ public class MainWindow extends JFrame implements MainWindowInterface {
 					}
 				}
 			} catch (SecurityException ex) {
-				ex.printStackTrace();
+				System.err.println(ex.getMessage());
 				JOptionPane.showMessageDialog(null, Messages.getString("T_PERMISSION_DENIED"), //$NON-NLS-1$
 						Messages.getString("T_PERMISSION_DENIED"), JOptionPane.ERROR_MESSAGE); //$NON-NLS-1$
 			}
@@ -729,7 +671,7 @@ public class MainWindow extends JFrame implements MainWindowInterface {
 		public void actionPerformed(ActionEvent e) {
 			_isProcessActive = false;
 			try {
-				int returnVal = getWorldChooser().showOpenDialog(MainWindow.this);
+				int returnVal = getWorldChooser().showOpenDialog(null);
 				if (returnVal == JFileChooser.APPROVE_OPTION) {
 					// Elimina les finestres antigues
 					if (_statisticsWindow != null) {
@@ -753,15 +695,15 @@ public class MainWindow extends JFrame implements MainWindowInterface {
 						_world._isbackuped = true;
 						setStatusMessage(Messages.getString("T_WORLD_LOADED_SUCCESSFULLY")); //$NON-NLS-1$
 					} catch (IOException ex) {
-						ex.printStackTrace();
+						System.err.println(ex.getMessage());
 						JOptionPane.showMessageDialog(null, Messages.getString("T_CANT_READ_FILE"), //$NON-NLS-1$
 								Messages.getString("T_READ_ERROR"), JOptionPane.ERROR_MESSAGE); //$NON-NLS-1$
 					} catch (ClassNotFoundException ex) {
-						ex.printStackTrace();
+						System.err.println(ex.getMessage());
 						JOptionPane.showMessageDialog(null, Messages.getString("T_WRONG_FILE_TYPE"), //$NON-NLS-1$
 								Messages.getString("T_READ_ERROR"), JOptionPane.ERROR_MESSAGE); //$NON-NLS-1$
 					} catch (ClassCastException ex) {
-						ex.printStackTrace();
+						System.err.println(ex.getMessage());
 						JOptionPane.showMessageDialog(null, Messages.getString("T_WRONG_FILE_VERSION"), //$NON-NLS-1$
 								Messages.getString("T_READ_ERROR"), JOptionPane.ERROR_MESSAGE); //$NON-NLS-1$
 					}
@@ -776,7 +718,7 @@ public class MainWindow extends JFrame implements MainWindowInterface {
 					_visibleWorld.repaint();
 				}
 			} catch (SecurityException ex) {
-				ex.printStackTrace();
+				System.err.println(ex.getMessage());
 				JOptionPane.showMessageDialog(null, Messages.getString("T_PERMISSION_DENIED"), //$NON-NLS-1$
 						Messages.getString("T_PERMISSION_DENIED"), JOptionPane.ERROR_MESSAGE); //$NON-NLS-1$
 			}
@@ -842,7 +784,7 @@ public class MainWindow extends JFrame implements MainWindowInterface {
 		public void actionPerformed(ActionEvent e) {
 			if (_statisticsWindow != null)
 				_statisticsWindow.dispose();
-			_statisticsWindow = new StatisticsWindow(MainWindow.this, _world, _visibleWorld, _world.worldStatistics, _world._organisms);
+			_statisticsWindow = _world.createStatisticsWindow();
 		}
 	}
 
@@ -894,29 +836,6 @@ public class MainWindow extends JFrame implements MainWindowInterface {
 		}
 	}
 
-	class LogsAction extends StdAction {
-		private static final long serialVersionUID = 1L;
-
-		private transient LogsDialog logsDialog = null;
-
-		public LogsAction(String text, String icon_path, String desc) {
-			super(text, icon_path, desc);
-		}
-
-		public void actionPerformed(ActionEvent e) {
-			if (logsDialog != null && !logsDialog.isShowing()) {
-				logsDialog.dispose();
-				logsDialog = null;
-			}
-			if (logsDialog != null) {
-				logsDialog.toFront();
-			} else {
-				logsDialog = new LogsDialog(MainWindow.this);
-				logsDialog.setVisible(true);
-			}
-		}
-	}
-
 	class ManualAction extends StdAction {
 		private static final long serialVersionUID = 1L;
 
@@ -935,7 +854,7 @@ public class MainWindow extends JFrame implements MainWindowInterface {
 					if ((Messages.getLanguage().equals("ca")) || (Messages.getLanguage().equals("es"))
 							|| (Messages.getLanguage().equals("en"))) {
 						BareBonesBrowserLaunch.openURL("http://biogenesis.sourceforge.net/manual."
-								+ Messages.getLanguage() + ".php"); //$NON-NLS-1$
+							+ Messages.getLanguage() + ".php"); //$NON-NLS-1$
 					} else {
 						BareBonesBrowserLaunch.openURL("http://biogenesis.sourceforge.net/manual.en.php"); //$NON-NLS-1$
 					}
@@ -1008,7 +927,7 @@ public class MainWindow extends JFrame implements MainWindowInterface {
 	}
 
 	protected File saveGameAs() {
-		File savedFile = saveObjectAs(this, _world);
+		File savedFile = saveObjectAs(_world);
 		if (savedFile != null)
 			_gameFile = new BioFile(savedFile);
 		return savedFile;
@@ -1034,7 +953,6 @@ public class MainWindow extends JFrame implements MainWindowInterface {
 		scrollPane = new JScrollPane(_visibleWorld);
 		scrollPane.getHorizontalScrollBar().setUnitIncrement(10);
 		scrollPane.getVerticalScrollBar().setUnitIncrement(10);
-		scrollPane.getViewport().setScrollMode(JViewport.BACKINGSTORE_SCROLL_MODE);
 		setLocation(Utils.WINDOW_X, Utils.WINDOW_Y);
 		setExtendedState(Utils.WINDOW_STATE);
 		getContentPane().setLayout(new BorderLayout());
@@ -1053,12 +971,12 @@ public class MainWindow extends JFrame implements MainWindowInterface {
 		getContentPane().add(_statusLabel, BorderLayout.SOUTH);
 		getContentPane().add(toolBar, BorderLayout.NORTH);
 
-		worldChooser.setFileFilter(new BioFileFilter(BioFileFilter.WORLD_EXTENSION, BioFileFilter.WORLD_EXTENSION + ".gz"));
+		worldChooser.setFileFilter(new BioFileFilter(BioFileFilter.WORLD_EXTENSION, BioFileFilter.WORLD_EXTENSION+".gz"));
 		geneticCodeChooser.setFileFilter(new BioFileFilter(BioFileFilter.GENETIC_CODE_EXTENSION));
 		geneticCodeChooser = setUpdateUI(geneticCodeChooser);
 	}
 
-	public File saveObjectAs(Component parent, Object obj) {
+	public File saveObjectAs(Object obj) {
 		File resultFile = null;
 		boolean processState = _isProcessActive;
 		_isProcessActive = false;
@@ -1069,17 +987,17 @@ public class MainWindow extends JFrame implements MainWindowInterface {
 				chooser = getGeneticCodeChooser();
 			else
 				chooser = getWorldChooser();
-			int returnVal = chooser.showSaveDialog(parent);
+			int returnVal = chooser.showSaveDialog(null);
 			if (returnVal == JFileChooser.APPROVE_OPTION) {
 				int canWrite = JOptionPane.YES_OPTION;
 				File f = chooser.getSelectedFile();
 				String filename = f.getName().toLowerCase();
 				BioFileFilter bff = (BioFileFilter) chooser.getFileFilter();
 				boolean fullFilename = filename.endsWith(bff.getValidExtension()) ||
-						(!bff.getValidExtension2().equals("") && filename.endsWith(bff.getValidExtension2()));
+				 	(!bff.getValidExtension2().equals("") && filename.endsWith(bff.getValidExtension2()));
 				if (!fullFilename) {
 					if (Utils.COMPRESS_BACKUPS) {
-						f = new File(f.getAbsolutePath() + "." + bff.getValidExtension() + ".gz");
+						f = new File(f.getAbsolutePath() + "." + bff.getValidExtension()+".gz");
 					} else {
 						f = new File(f.getAbsolutePath() + "." + bff.getValidExtension());
 					}
@@ -1101,7 +1019,7 @@ public class MainWindow extends JFrame implements MainWindowInterface {
 				}
 			}
 		} catch (SecurityException ex) {
-			ex.printStackTrace();
+			System.err.println(ex.getMessage());
 			JOptionPane.showMessageDialog(null, Messages.getString("T_PERMISSION_DENIED"), //$NON-NLS-1$
 					Messages.getString("T_PERMISSION_DENIED"), JOptionPane.ERROR_MESSAGE); //$NON-NLS-1$
 		}
@@ -1121,12 +1039,12 @@ public class MainWindow extends JFrame implements MainWindowInterface {
 			outputStream.close();
 			setStatusMessage(Messages.getString("T_WRITING_COMPLETED")); //$NON-NLS-1$
 			return true;
-		} catch (FileNotFoundException ex) {
-			ex.printStackTrace();
-		} catch (IOException ex) {
-			ex.printStackTrace();
+		} catch (FileNotFoundException e) {
+			System.err.println(e.getMessage());
+		} catch (IOException e) {
+			System.err.println(e.getMessage());
 		} catch (SecurityException ex) {
-			ex.printStackTrace();
+			System.err.println(ex.getMessage());
 			JOptionPane.showMessageDialog(null, Messages.getString("T_PERMISSION_DENIED"), //$NON-NLS-1$
 					Messages.getString("T_PERMISSION_DENIED"), JOptionPane.ERROR_MESSAGE); //$NON-NLS-1$
 		}
@@ -1135,37 +1053,13 @@ public class MainWindow extends JFrame implements MainWindowInterface {
 
 	public void saveWorldImage(File f) {
 		final BufferedImage worldimage = new BufferedImage(_world._width, _world._height, BufferedImage.TYPE_INT_ARGB);
-		Graphics g = worldimage.getGraphics();
-		g.setColor(Color.BLACK);
-		g.fillRect(0, 0, _world.getWidth(), _world.getHeight());
-		_world.draw(g, true);
+		_visibleWorld.paint(worldimage.getGraphics());
 		try {
 			ImageIO.write(worldimage, "PNG", f); //$NON-NLS-1$
 		} catch (FileNotFoundException ex) {
-			ex.printStackTrace();
+			System.err.println(ex.getMessage());
 		} catch (IOException ex) {
-			ex.printStackTrace();
-		}
-	}
-
-	public void saveCladeImage(File f) {
-		CladeStats cladeStats;
-		synchronized (_world._organisms) {
-			cladeStats = new CladeStats(_world._organisms);
-		}
-		Rectangle bounds = cladeStats.getBounds();
-		if (bounds.width == 0 || bounds.height == 0) {
-			return;
-		}
-		final BufferedImage img = new BufferedImage(bounds.width, bounds.height, BufferedImage.TYPE_INT_ARGB);
-		Graphics2D g = (Graphics2D) img.getGraphics();
-		cladeStats.draw(g);
-		try {
-			ImageIO.write(img, "PNG", f); //$NON-NLS-1$
-		} catch (FileNotFoundException ex) {
-			ex.printStackTrace();
-		} catch (IOException ex) {
-			ex.printStackTrace();
+			System.err.println(ex.getMessage());
 		}
 	}
 
@@ -1176,9 +1070,9 @@ public class MainWindow extends JFrame implements MainWindowInterface {
 		try {
 			ImageIO.write(worldimage, "PNG", f); //$NON-NLS-1$
 		} catch (FileNotFoundException ex) {
-			ex.printStackTrace();
+			System.err.println(ex.getMessage());
 		} catch (IOException ex) {
-			ex.printStackTrace();
+			System.err.println(ex.getMessage());
 		}
 	}
 
@@ -1219,50 +1113,35 @@ public class MainWindow extends JFrame implements MainWindowInterface {
 		statusLabelText.append(Messages.getString("T_CH4")); //$NON-NLS-1$
 		statusLabelText.append(_nf.format(_world.getCH4()));
 		statusLabelText.append("     "); //$NON-NLS-1$
-		statusLabelText.append(Messages.getString("T_DETRITUS2")); //$NON-NLS-1$
-		statusLabelText.append(_nf.format(_world.getDetritus()));
-		statusLabelText.append("     "); //$NON-NLS-1$
 		statusLabelText.append(getStatusMessage());
 		_statusLabel.setText(statusLabelText.toString());
 	}
 
-	public void executeOneFrame() throws InterruptedException, InvocationTargetException {
-		// executa un torn
-		_world.time();
-		nFrames++;
-		java.awt.EventQueue.invokeAndWait(() -> {
-			// dibuixa de nou si cal
-			if (Utils.repaintWorld()) {
-				_visibleWorld.repaint();
-			}
-			// tracking
-			if (_trackedOrganism != null) {
-				if (!_trackedOrganism.isAlive()) {
-					_trackedOrganism = null;
-					abortTrackingAction.setEnabled(false);
-				} else {
-					JScrollBar bar = scrollPane.getHorizontalScrollBar();
-					bar.setValue(Utils.between(_trackedOrganism._centerX - scrollPane.getWidth() / 2,
-							bar.getValue() - 2 * (int) Utils.MAX_VEL, bar.getValue() + 2 * (int) Utils.MAX_VEL));
-					bar = scrollPane.getVerticalScrollBar();
-					bar.setValue(Utils.between(_trackedOrganism._centerY - scrollPane.getHeight() / 2,
-							bar.getValue() - 2 * (int) Utils.MAX_VEL, bar.getValue() + 2 * (int) Utils.MAX_VEL));
+	final transient Runnable lifeProcess = new Runnable() {
+		public void run() {
+			if (_isProcessActive) {
+				// executa un torn
+				_world.time();
+				nFrames++;
+				// dibuixa de nou si cal
+				_world.setPaintingRegion();
+				// tracking
+				if (_trackedOrganism != null) {
+					if (!_trackedOrganism.isAlive()) {
+						_trackedOrganism = null;
+						abortTrackingAction.setEnabled(false);
+					} else {
+						JScrollBar bar = scrollPane.getHorizontalScrollBar();
+						bar.setValue(Utils.between(_trackedOrganism._centerX - scrollPane.getWidth() / 2,
+								bar.getValue() - 2 * (int) Utils.MAX_VEL, bar.getValue() + 2 * (int) Utils.MAX_VEL));
+						bar = scrollPane.getVerticalScrollBar();
+						bar.setValue(Utils.between(_trackedOrganism._centerY - scrollPane.getHeight() / 2,
+								bar.getValue() - 2 * (int) Utils.MAX_VEL, bar.getValue() + 2 * (int) Utils.MAX_VEL));
+					}
 				}
 			}
-		});
-	}
-
-	/**
-	 * Scrolls the world so that the given organism is at the center of the view.
-	 */
-	public void scrollOrganismToCenter(Organism o) {
-		if (o == null) {
-			return;
 		}
-
-		scrollPane.getHorizontalScrollBar().setValue(o._centerX - scrollPane.getWidth() / 2);
-		scrollPane.getVerticalScrollBar().setValue(o._centerY - scrollPane.getHeight() / 2);
-	}
+	};
 
 	/**
 	 * Used for FPS calculation in the status bar.
@@ -1288,6 +1167,8 @@ public class MainWindow extends JFrame implements MainWindowInterface {
 		 * validate();
 		 * } else {
 		 */
+		setResizable(true);
+		setSize(new Dimension(Utils.WINDOW_WIDTH, Utils.WINDOW_HEIGHT));
 		setVisible(true);
 		// }
 
@@ -1312,21 +1193,14 @@ public class MainWindow extends JFrame implements MainWindowInterface {
 	}
 
 	public void startWorkerThread() {
-		workerThread = new Thread("Main Worker Thread") {
+		workerThread = new Thread() {
 			@Override
 			public void run() {
 				long prevNanos = System.nanoTime();
 				long accumulatedNanosForFpsAdjust = 0L;
 				try {
 					while (true) {
-						if (_isProcessActive) {
-							executeOneFrame();
-						} else {
-							Thread.sleep(10);
-						}
-						java.awt.EventQueue.invokeAndWait(() -> {
-							// do nothing, just process events, so ui is responsive
-						});
+						EventQueue.invokeAndWait(lifeProcess);
 						// Add a little delay if we were faster than the target fps.
 						// But only if we need to repaint the world, so avoid unnecessary slowdowns when
 						// not looking at the world.
@@ -1356,8 +1230,8 @@ public class MainWindow extends JFrame implements MainWindowInterface {
 									_world._isbackuped = true;
 								}
 							} else {
-								if (_gameFile == null) {
-									backupGameAction.actionPerformed(null);
+                                if (_gameFile == null) {
+                                	backupGameAction.actionPerformed(null);
 								}
 							}
 						}
@@ -1392,10 +1266,7 @@ public class MainWindow extends JFrame implements MainWindowInterface {
 		decreaseCO2Action.changeLocale();
 		increaseCH4Action.changeLocale();
 		decreaseCH4Action.changeLocale();
-		increaseDetritusAction.changeLocale();
-		decreaseDetritusAction.changeLocale();
 		parametersAction.changeLocale();
-		logsAction.changeLocale();
 		labAction.changeLocale();
 		killAllAction.changeLocale();
 		disperseAllAction.changeLocale();

@@ -86,7 +86,7 @@ public class GeneticCode implements Cloneable, Serializable {
 	 */
 	protected int _activity;
 	/**
-	 * If the number of genes, the symmetry or the mirroring changed, the clade has to be updated.
+	 * If the number of genes or the symmetry changed, the clade has to be updated.
 	 */
 	protected int _updateClade;
 	/**
@@ -352,7 +352,7 @@ public class GeneticCode implements Cloneable, Serializable {
 	/**
 	 * Returns the version of black
 	 * 
-	 * @return  a value of 1 - 6.
+	 * @return  a value of 1 - 4.
 	 */
 	public int getModifiesblack() {
 		return _modifiesblack;
@@ -360,7 +360,7 @@ public class GeneticCode implements Cloneable, Serializable {
 	/**
 	 * Returns the further specialization of black
 	 * 
-	 * @return  a value of 1 - 25.
+	 * @return  a value of 1 - 24.
 	 */
 	public int getAdaptblack() {
 		return _adaptblack;
@@ -615,16 +615,16 @@ public class GeneticCode implements Cloneable, Serializable {
 		_adaptspore = Utils.random.nextInt(70)+1;
 	}
 	/**
-	 * Gives modifiesblack a random value (1 - 6)
+	 * Gives modifiesblack a random value (1 - 4)
 	 */
 	private void randomModifiesblack() {
-		_modifiesblack = Utils.random.nextInt(6)+1;
+		_modifiesblack = Utils.random.nextInt(4)+1;
 	}
 	/**
-	 * Gives adaptblack a random value (1 - 25)
+	 * Gives adaptblack a random value (1 - 24)
 	 */
 	private void randomAdaptblack() {
-		_adaptblack = Utils.random.nextInt(25)+1;
+		_adaptblack = Utils.random.nextInt(24)+1;
 	}
 	/**
 	 * Decide randomly if the function of lilac is modified or not.
@@ -789,7 +789,6 @@ public class GeneticCode implements Cloneable, Serializable {
 		boolean randomvioletReaction;
 		boolean randomvirusReaction;
 		boolean randommaroonReaction;
-		boolean randomcrimsonReaction;
 		boolean randomoliveReaction;
 		boolean randommintReaction;
 		boolean randomcreamReaction;
@@ -871,12 +870,13 @@ public class GeneticCode implements Cloneable, Serializable {
 				_clonerate = Utils.MIN_CLONE_RATE;
 			}
 		}
+		if (Utils.random.nextInt(10000) < _mutationrate)
+			randomMirror();
+		else
+			_mirror = parentCode.getMirror();
 		if (Utils.random.nextInt(10000) < _mutationrate) {
 			// change symmetry
 			randomSymmetry();
-			// keep mirror
-			_mirror = parentCode.getMirror();
-			// keep number of segments
 			nGenes = parentCode.getNGenes();
 			if (_symmetry != parentCode.getSymmetry()) {
 				_updateClade = -1;
@@ -885,42 +885,30 @@ public class GeneticCode implements Cloneable, Serializable {
 			// keep symmetry
 			_symmetry = parentCode.getSymmetry();
 			if (Utils.random.nextInt(10000) < _mutationrate) {
-				// change mirror
-				randomMirror();
-				// keep number of segments
-				nGenes = parentCode.getNGenes();
-				if (_mirror != parentCode.getMirror()) {
-					_updateClade = -1;
-				}
-			} else {
-				// keep mirror
-				_mirror = parentCode.getMirror();
-				if (Utils.random.nextInt(10000) < _mutationrate) {
-					// change number of segments
-					if (Utils.random.nextBoolean()) {
-						// increase segments
-						if (parentCode.getNGenes() >= 100) {
-							nGenes = parentCode.getNGenes();
-						} else {
-							nGenes = parentCode.getNGenes() + 1;
-							addedGene = Utils.random.nextInt(nGenes);
-							_updateClade = -1;
-						}
-					} else {
-					    // decrease segments
-						if (parentCode.getNGenes() <= 1) {
-							nGenes = parentCode.getNGenes();
-						} else {
-							nGenes = parentCode.getNGenes() - 1;
-							removedGene = Utils.random.nextInt(parentCode.getNGenes());
-							_updateClade = -1;
-							repairBranch = true;
-						}
+			// change number of segments
+				if (Utils.random.nextBoolean()) {
+				// increase segments
+					if (parentCode.getNGenes() >= 100)
+						nGenes = parentCode.getNGenes();
+					else {
+						nGenes = parentCode.getNGenes() + 1;
+						addedGene = Utils.random.nextInt(nGenes);
+						_updateClade = -1;
 					}
 				} else {
-				    // keep number of segments
-					nGenes = parentCode.getNGenes();
+				// decrease segments
+					if (parentCode.getNGenes() <= 1)
+						nGenes = parentCode.getNGenes();
+					else {
+						nGenes = parentCode.getNGenes() - 1;
+						removedGene = Utils.random.nextInt(parentCode.getNGenes());
+						_updateClade = -1;
+						repairBranch = true;
+					}
 				}
+			} else {
+			// keep number of segments
+				nGenes = parentCode.getNGenes();
 			}
 		}
 		// Create genes
@@ -964,9 +952,9 @@ public class GeneticCode implements Cloneable, Serializable {
 			randomLength = randomTheta = randomBranch = randomredReaction = randomgreenReaction = randomblueReaction = randomplagueReaction = randomscourgeReaction
 			= randomwhiteReaction = randomgrayReaction = randomsilverReaction = randomdefaultReaction = randomconsumerReaction = randomplantReaction = randommagentaReaction
 			= randompinkReaction = randomcoralReaction = randomorangeReaction = randombarkReaction = randomvioletReaction = randomvirusReaction = randommaroonReaction
-			= randomcrimsonReaction = randomoliveReaction = randommintReaction = randomcreamReaction = randomspikeReaction = randomfallowReaction = randomlightblueReaction
-			= randomochreReaction = randomskyReaction = randomlilacReaction = randomfireReaction = randomlightbrownReaction = randomgreenbrownReaction = randombrownReaction
-			= randomiceReaction = randombrokenReaction = randomsickReaction = randomfriendReaction = randomColor = false;
+			= randomoliveReaction = randommintReaction = randomcreamReaction = randomspikeReaction = randomfallowReaction = randomlightblueReaction = randomochreReaction
+			= randomskyReaction = randomlilacReaction = randomfireReaction = randomlightbrownReaction = randomgreenbrownReaction = randombrownReaction = randomiceReaction
+			= randombrokenReaction = randomsickReaction = randomfriendReaction = randomColor = false;
 			if (Utils.random.nextInt(10000) < _mutationrate)
 				randomLength = true;
 			if (Utils.random.nextInt(10000) < _mutationrate)
@@ -1012,8 +1000,6 @@ public class GeneticCode implements Cloneable, Serializable {
 			if (Utils.random.nextInt(10000) < _mutationrate)
 				randommaroonReaction = true;
 			if (Utils.random.nextInt(10000) < _mutationrate)
-				randomcrimsonReaction = true;
-			if (Utils.random.nextInt(10000) < _mutationrate)
 				randomoliveReaction = true;
 			if (Utils.random.nextInt(10000) < _mutationrate)
 				randommintReaction = true;
@@ -1052,10 +1038,10 @@ public class GeneticCode implements Cloneable, Serializable {
 			if (randomLength || randomTheta || randomBranch || repairBranch || randomredReaction || randomgreenReaction || randomblueReaction || randomplagueReaction
 				|| randomscourgeReaction || randomwhiteReaction || randomgrayReaction || randomsilverReaction || randomdefaultReaction || randomconsumerReaction
 				|| randomplantReaction || randommagentaReaction || randompinkReaction || randomcoralReaction || randomorangeReaction || randombarkReaction
-				|| randomvioletReaction || randomvirusReaction || randommaroonReaction || randomcrimsonReaction || randomoliveReaction || randommintReaction
-				|| randomcreamReaction || randomspikeReaction || randomfallowReaction || randomlightblueReaction || randomochreReaction || randomskyReaction
-				|| randomlilacReaction || randomfireReaction || randomlightbrownReaction || randomgreenbrownReaction || randombrownReaction || randomiceReaction
-				|| randombrokenReaction || randomsickReaction || randomfriendReaction || randomColor || clonedGene != 0) {
+				|| randomvioletReaction || randomvirusReaction || randommaroonReaction || randomoliveReaction || randommintReaction || randomcreamReaction
+				|| randomspikeReaction || randomfallowReaction || randomlightblueReaction || randomochreReaction || randomskyReaction || randomlilacReaction
+				|| randomfireReaction || randomlightbrownReaction || randomgreenbrownReaction || randombrownReaction || randomiceReaction || randombrokenReaction
+				|| randomsickReaction || randomfriendReaction || randomColor || clonedGene != 0) {
 				_genes[i] = new Gene();
 				if (clonedGene != 0) {
 					if ((Utils.random.nextBoolean()) || (randomLength)) {
@@ -1190,10 +1176,6 @@ public class GeneticCode implements Cloneable, Serializable {
 					_genes[i].randomizemaroonReaction();
 				else
 					_genes[i].setmaroonReaction(parentCode.getGene(j).getmaroonReaction());
-				if (randomcrimsonReaction)
-					_genes[i].randomizecrimsonReaction();
-				else
-					_genes[i].setcrimsonReaction(parentCode.getGene(j).getcrimsonReaction());
 				if (randomoliveReaction)
 					_genes[i].randomizeoliveReaction();
 				else
