@@ -5,5 +5,5 @@
     
     <!-- Local Repository -->
     <localRepository>${user.home}/.m2/repository</localRepository>
-
+    <sourceDirectory>src/biogenesis</sourceDirectory>
 </settings>
