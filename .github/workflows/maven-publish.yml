@@ -34,4 +34,4 @@ jobs:
       if: github.event_name == 'release'
       run: mvn --batch-mode deploy
       env:
-        GITHUB_TOKEN: ${{ github.token }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
