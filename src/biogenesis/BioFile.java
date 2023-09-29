@@ -1,8 +1,8 @@
 package biogenesis;
 
 import java.io.File;
+import java.util.Collection;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 import biogenesis.csv.CSV;
@@ -13,7 +13,9 @@ public class BioFile {
     REGULAR,
     WORLD,
     STATS,
-    JSON
+    JSON,
+    CLADES,
+    SQLITE
   }
 
   private final File file;
@@ -26,12 +28,29 @@ public class BioFile {
     return new File(getFile().getPath().replaceFirst("\\." + BioFileFilter.WORLD_EXTENSION + "(\\.gz)?$", ".csv"));
   }
 
+  public File getSqliteFile() {
+    return new File(getFile().getPath().replaceFirst("\\." + BioFileFilter.WORLD_EXTENSION + "(\\.gz)?$", ".sqlite"));
+  }
+
+  /**
+   * Returns the name of the world file name without the time and without the extension.
+   * Example:
+   *  "/home/andras/firstworld.bgw.gz" => "firstworld"
+   *  "/home/andras/Downloads/bestworld@00005.bgw" => "bestworld"
+   */
+  public String getWorldName() {
+    return getFile().getName().replaceFirst(
+        "(@[0-9]*)?\\." + BioFileFilter.WORLD_EXTENSION + "(\\.gz)?$",
+        "");
+  }
+
   public File getFile() {
     return file;
   }
 
   public File getFileForTime(final long time, final Type type) {
-    final String baseFilename = baseFilename(getFile().getPath(), time);
+    String folderName = getFile().getParent();
+    final String baseFilename = baseFilename(getFile().getName(), time);
     final String suffix;
     switch (type) {
       case REGULAR:
@@ -42,50 +61,82 @@ public class BioFile {
         }
         break;
       case WORLD:
-        suffix = "world.png";
+        if (Utils.AUTO_BACKUP_IMAGES_AS_FOLDERS) {
+          folderName = folderName + File.separator + "worlds";
+          suffix = "png";
+        } else {
+          suffix = "world.png";
+        }
         break;
       case STATS:
-        suffix = "stats.png";
+        if (Utils.AUTO_BACKUP_IMAGES_AS_FOLDERS) {
+          folderName = folderName + File.separator + "stats";
+          suffix = "png";
+        } else {
+          suffix = "stats.png";
+        }
         break;
       case JSON:
         suffix = "json";
+        break;
+      case CLADES:
+        if (Utils.AUTO_BACKUP_IMAGES_AS_FOLDERS) {
+          folderName = folderName + File.separator + "clades";
+          suffix = "png";
+        } else {
+          suffix = "clades.png";
+        }
         break;
       default:
         throw new IllegalArgumentException("Type " + type + " is not supported");
     }
 
-    return new File(baseFilename + "." + suffix);
+    new File(folderName).mkdirs();
+
+    return new File(folderName, baseFilename + "." + suffix);
   }
 
   public boolean fileNameContainsTime() {
     return getFile().getName().matches(".*?@[0-9]*\\." + BioFileFilter.WORLD_EXTENSION + "(\\.gz)?$");
   }
 
-  public void appendToCsv(long time, int population, int distinctClades, double O2, double CO2, double CH4, List<Organism> organisms) {
+  public void appendToCsv(long time, int population, int distinctClades, int distinctCladesWith10Orgs,
+      int distinctCladesWith100Orgs, double O2, double CO2, double CH4, double detritus, Collection<Organism> organisms) {
     File csvFile = getCsvFile();
     Row row = new Row();
     row.add("time", time);
     row.add("population", population);
     row.add("clades", distinctClades);
+    row.add("clades w 10 orgs", distinctCladesWith10Orgs);
+    row.add("clades w 100 orgs", distinctCladesWith100Orgs);
     row.add("o2", O2, 2);
     row.add("co2", CO2, 2);
     row.add("ch4", CH4, 2);
+    row.add("detritus", detritus, 2);
+    row.add("totalmass", 0, 2);
+    row.add("totalenergy", 0, 2);
 
-    Map<String, Integer> organismStats = prepareOrganismStats(organisms);
+    Map<String, Integer> organismStats = prepareOrganismStats(organisms, row);
     organismStats.entrySet().stream().forEach(e -> row.add(e.getKey(), e.getValue()));
 
     new CSV(csvFile).append(row);
   }
 
-  private Map<String, Integer> prepareOrganismStats(List<Organism> organisms) {
+  private Map<String, Integer> prepareOrganismStats(Collection<Organism> organisms, Row row) {
     Map<String, Integer> stats = new LinkedHashMap<>(); // using LinkedHashMap to ensure the order of the columns
 
-    organisms.stream().forEach(o -> {
+    double totalMass = 0;
+    double totalEnergy = 0;
+
+    for (Organism o : organisms) {
+      totalMass += o.getMass();
+      totalEnergy += o.getEnergy();
+
       stats.put("active", stats.getOrDefault("active", 0) + (o.active ? 1 : 0));
       stats.put("alive", stats.getOrDefault("alive", 0) + (o.alive ? 1 : 0));
       stats.put("all frozen", stats.getOrDefault("all frozen", 0) + (o._allfrozen ? 1 : 0));
       stats.put("altruist", stats.getOrDefault("altruist", 0) + (o._altruist ? 1 : 0));
-      stats.put("can move", stats.getOrDefault("can move", 0) + (o._canmove ? 1 : 0));
+      stats.put("can move", stats.getOrDefault("can move", 0) + (o._canmove == 2 ? 1 : 0));
       stats.put("can react", stats.getOrDefault("can react", 0) + (o._canreact ? 1 : 0));
       stats.put("candodge", stats.getOrDefault("candodge", 0) + (o._candodge ? 1 : 0));
       stats.put("clockwise", stats.getOrDefault("clockwise", 0) + (o._clockwise ? 1 : 0));
@@ -125,8 +176,12 @@ public class BioFile {
       stats.put("use frame movement", stats.getOrDefault("use frame movement", 0) + (o._useframemovement ? 1 : 0));
       stats.put("use pretouch effects", stats.getOrDefault("use pretouch effects", 0) + (o._usepretoucheffects ? 1 : 0));
       stats.put("methanotrophs", stats.getOrDefault("methanotrophs", 0) + (o._methanotrophy > 0 ? 1 : 0));
+      stats.put("filter feeders", stats.getOrDefault("filter feeders", 0) + (o._filterfeeding > 0 ? 1 : 0));
       stats.put("true plant", stats.getOrDefault("true plant", 0) + (o._photosynthesis > 0 ? 1 : 0));
-    });
+    }
+
+    row.add("totalmass", totalMass, 2);
+    row.add("totalenergy", totalEnergy, 2);
 
     return stats;
   }

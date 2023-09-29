@@ -42,7 +42,7 @@ public final class Utils {
 	 *
 	 * All serializable classes use this value as their serialVersionUID.
 	 */
-	static final int FILE_VERSION = 700;
+	public static final int FILE_VERSION = 700;
 	static final int VERSION = 900; //two digits for version, subversion and revision
 
 	// Default values for parameters
@@ -76,17 +76,21 @@ public final class Utils {
 	 */
 	final static double DEF_INITIAL_CH4 = 0;
 	/**
+	 * This is the default amount of detritus that exists in a newly created world.
+	 */
+	final static double DEF_INITIAL_DETRITUS = 0;
+	/**
 	 * This is the initial size of the organisms vector.
 	 */
 	final static int DEF_ORGANISMS_VECTOR_SIZE = 50;
 	/**
 	 * This is the default world's width.
 	 */
-	final static int DEF_WORLD_WIDTH = 7000;
+	final static int DEF_WORLD_WIDTH = 7200;
 	/**
 	 * This is the default world's height.
 	 */
-	final static int DEF_WORLD_HEIGHT = 7000;
+	final static int DEF_WORLD_HEIGHT = 7200;
 	/**
 	 * This is the default maximum age that an organism can achieve,
 	 * without counting the number of segments.
@@ -107,6 +111,11 @@ public final class Utils {
 	 * which turns CH4 into CO2, divided by this value.
 	 */
 	final static int DEF_CH4_TO_CO2_DIVISOR = 1000;
+	/**
+	 * This is the default detritus to CO2 divisor,
+	 * which turns detritus into CO2, divided by this value.
+	 */
+	final static int DEF_DETRITUS_TO_CO2_DIVISOR = 600;
 	/**
 	 * This is the default rubbing coefficient that is applied to movements. This value is
 	 * multiplied by the speed at every frame.
@@ -263,7 +272,7 @@ public final class Utils {
 	/**
 	 * This is the default energy that is consumed when an organism touches a symbiont (with rose segments).
 	 */
-	final static double DEF_SYMBIONT_ENERGY_CONSUMPTION = 0.58d;
+	final static double DEF_SYMBIONT_ENERGY_CONSUMPTION = 0.59d;
 	/**
 	 * This is the default energy that is consumed when a spring segment is used.
 	 */
@@ -309,9 +318,13 @@ public final class Utils {
 	 */
 	final static double DEF_PURPLE_ENERGY_CONSUMPTION = 4d;
 	/**
+	 * This is the default energy that is consumed when a plankton segment is used.
+	 */
+	final static double DEF_PLANKTON_ENERGY_CONSUMPTION = 1d;
+	/**
 	 * This is the default energy that is consumed when a c4 segment is used.
 	 */
-	final static double DEF_C4_ENERGY_CONSUMPTION = 0.54d;
+	final static double DEF_C4_ENERGY_CONSUMPTION = 0.535d;
 	/**
 	 * This is the default energy that is consumed when a violet segment is used.
 	 */
@@ -321,6 +334,10 @@ public final class Utils {
 	 */
 	final static double DEF_TEAL_ENERGY_CONSUMPTION = 11.88d;
 	/**
+	 * This is the default energy that is consumed when a spin segment is used.
+	 */
+	final static double DEF_SPIN_ENERGY_CONSUMPTION = 13.333d;
+	/**
 	 * This is the default energy that is consumed when an eye segment is used.
 	 */
 	final static double DEF_EYE_ENERGY_CONSUMPTION = 0d;
@@ -328,6 +345,10 @@ public final class Utils {
 	 * This is the default energy that is consumed when a maroon segment is used.
 	 */
 	final static double DEF_MAROON_ENERGY_CONSUMPTION = 2d;
+	/**
+	 * This is the default energy that is consumed when a crimson segment is used.
+	 */
+	final static double DEF_CRIMSON_ENERGY_CONSUMPTION = 3.2d;
 	/**
 	 * This is the default energy that is consumed when a olive segment is used.
 	 */
@@ -497,6 +518,10 @@ public final class Utils {
 	 */
 	final static int DEF_PURPLE_PROB = 3;
 	/**
+	 * This is the default probability for a new segment to be plankton.
+	 */
+	final static int DEF_PLANKTON_PROB = 3;
+	/**
 	 * This is the default probability for a new segment to be c4.
 	 */
 	final static int DEF_C4_PROB = 3;
@@ -509,6 +534,10 @@ public final class Utils {
 	 */
 	final static int DEF_TEAL_PROB = 8;
 	/**
+	 * This is the default probability for a new segment to be spin.
+	 */
+	final static int DEF_SPIN_PROB = 2;
+	/**
 	 * This is the default probability for a new segment to be eye.
 	 */
 	final static int DEF_EYE_PROB = 4;
@@ -516,6 +545,10 @@ public final class Utils {
 	 * This is the default probability for a new segment to be maroon.
 	 */
 	final static int DEF_MAROON_PROB = 2;
+	/**
+	 * This is the default probability for a new segment to be crimson.
+	 */
+	final static int DEF_CRIMSON_PROB = 1;
 	/**
 	 * This is the default probability for a new segment to be olive.
 	 */
@@ -535,7 +568,7 @@ public final class Utils {
 	/**
 	 * This is the default probability for a new segment to be dark.
 	 */
-	final static int DEF_DARK_PROB = 1;
+	final static int DEF_DARK_PROB = 2;
 	/**
 	 * This is the default probability for a new segment to be ochre.
 	 */
@@ -642,6 +675,10 @@ public final class Utils {
 	final static int DEF_STATUS_BAR_REFRESH_FPS = 4;
 	final static int DEF_STATISTICS_REFRESH_FPS = 2;
 	/**
+	 * This is the default value for the number of threads that will be used for the simulation.
+	 */
+	final static int DEF_THREAD_COUNT = 1;
+	/**
 	 * This is the default value for having or not having automatic backups.
 	 */
 	final static boolean DEF_AUTO_BACKUP = false;
@@ -667,6 +704,16 @@ public final class Utils {
 	 * will be saved.
 	 */
 	final static boolean DEF_AUTO_BACKUP_STATISTICS_PNG = false;
+	/**
+	 * This is the default value for saving or not saving the clades tree as a PNG image
+	 * when saving automatic backups.
+	 */
+	final static boolean DEF_AUTO_BACKUP_CLADES_PNG = false;
+	/**
+	 * This is the default value for saving or not saving PNG images into separate folders
+	 * when saving automatic backups.
+	 */
+	final static boolean DEF_AUTO_BACKUP_IMAGES_AS_FOLDERS = false;
 	/**
 	 * This is the default number of game time units that pass between backups.
 	 */
@@ -737,6 +784,10 @@ public final class Utils {
 	 */
 	static double INITIAL_CH4 = DEF_INITIAL_CH4;
 	/**
+	 * This is the effective amount of detritus that exists in a newly created world.
+	 */
+	static double INITIAL_DETRITUS = DEF_INITIAL_DETRITUS;
+	/**
 	 * This is the effective size of the organisms vector.
 	 */
 	static int ORGANISMS_VECTOR_SIZE = DEF_ORGANISMS_VECTOR_SIZE;
@@ -768,6 +819,11 @@ public final class Utils {
 	 * which turns CH4 into CO2, divided by this value.
 	 */
 	static int CH4_TO_CO2_DIVISOR = DEF_CH4_TO_CO2_DIVISOR;
+	/**
+	 * This is the detritus to CO2 divisor,
+	 * which turns detritus into CO2, divided by this value.
+	 */
+	static int DETRITUS_TO_CO2_DIVISOR = DEF_DETRITUS_TO_CO2_DIVISOR;
 	/**
 	 * This is the rubbing coefficient that is applied to movements. This value is
 	 * multiplied by the speed at every frame.
@@ -970,6 +1026,10 @@ public final class Utils {
 	 */
 	static double PURPLE_ENERGY_CONSUMPTION = DEF_PURPLE_ENERGY_CONSUMPTION;
 	/**
+	 * This is the energy that is consumed when a plankton segment is used.
+	 */
+	static double PLANKTON_ENERGY_CONSUMPTION = DEF_PLANKTON_ENERGY_CONSUMPTION;
+	/**
 	 * This is the energy that is consumed when a c4 segment is used.
 	 */
 	static double C4_ENERGY_CONSUMPTION = DEF_C4_ENERGY_CONSUMPTION;
@@ -982,6 +1042,10 @@ public final class Utils {
 	 */
 	static double TEAL_ENERGY_CONSUMPTION = DEF_TEAL_ENERGY_CONSUMPTION;
 	/**
+	 * This is the energy that is consumed when a spin segment is used.
+	 */
+	static double SPIN_ENERGY_CONSUMPTION = DEF_SPIN_ENERGY_CONSUMPTION;
+	/**
 	 * This is the energy that is consumed when an eye segment is used.
 	 */
 	static double EYE_ENERGY_CONSUMPTION = DEF_EYE_ENERGY_CONSUMPTION;
@@ -989,6 +1053,10 @@ public final class Utils {
 	 * This is the energy that is consumed when a maroon segment is used.
 	 */
 	static double MAROON_ENERGY_CONSUMPTION = DEF_MAROON_ENERGY_CONSUMPTION;
+	/**
+	 * This is the energy that is consumed when a crimson segment is used.
+	 */
+	static double CRIMSON_ENERGY_CONSUMPTION = DEF_CRIMSON_ENERGY_CONSUMPTION;
 	/**
 	 * This is the energy that is consumed when a olive segment is used.
 	 */
@@ -1158,6 +1226,10 @@ public final class Utils {
 	 */
 	static int PURPLE_PROB = DEF_PURPLE_PROB;
 	/**
+	 * This is the probability for a new segment to be plankton.
+	 */
+	static int PLANKTON_PROB = DEF_PLANKTON_PROB;
+	/**
 	 * This is the probability for a new segment to be c4.
 	 */
 	static int C4_PROB = DEF_C4_PROB;
@@ -1170,6 +1242,10 @@ public final class Utils {
 	 */
 	static int TEAL_PROB = DEF_TEAL_PROB;
 	/**
+	 * This is the probability for a new segment to be spin.
+	 */
+	static int SPIN_PROB = DEF_SPIN_PROB;
+	/**
 	 * This is the probability for a new segment to be eye.
 	 */
 	static int EYE_PROB = DEF_EYE_PROB;
@@ -1177,6 +1253,10 @@ public final class Utils {
 	 * This is the probability for a new segment to be maroon.
 	 */
 	static int MAROON_PROB = DEF_MAROON_PROB;
+	/**
+	 * This is the probability for a new segment to be crimson.
+	 */
+	static int CRIMSON_PROB = DEF_CRIMSON_PROB;
 	/**
 	 * This is the probability for a new segment to be olive.
 	 */
@@ -1333,7 +1413,13 @@ public final class Utils {
 	/**
 	 * How many times per second we want to update the statistics window, if it's open.
 	 */
-	static int STATISTICS_REFRESH_FPS = DEF_STATISTICS_REFRESH_FPS;
+	public static int STATISTICS_REFRESH_FPS = DEF_STATISTICS_REFRESH_FPS;
+	/**
+	 * The number of threads to use to calculate the next frame. More threads can
+	 * potentially make simulation faster if there are multiple CPU cores available,
+	 * but synchronization between threads can slow down the overall speed.
+	 */
+	public static int THREAD_COUNT = DEF_THREAD_COUNT;
 	/**
 	 * This is the value for having or not having automatic backups.
 	 */
@@ -1360,6 +1446,16 @@ public final class Utils {
 	 * will be saved.
 	 */
 	static boolean AUTO_BACKUP_STATISTICS_PNG = DEF_AUTO_BACKUP_STATISTICS_PNG;
+	/**
+	 * This is the value for saving or not saving the clades tree as a PNG image
+	 * when saving automatic backups.
+	 */
+	static boolean AUTO_BACKUP_CLADES_PNG = DEF_AUTO_BACKUP_CLADES_PNG;
+	/**
+	 * This is the value for saving or not saving the PNG images into folders
+	 * when saving automatic backups.
+	 */
+	public static boolean AUTO_BACKUP_IMAGES_AS_FOLDERS = DEF_AUTO_BACKUP_IMAGES_AS_FOLDERS;
 	/**
 	 * This is the number of game time units that pass between backups.
 	 */
@@ -1438,255 +1534,271 @@ public final class Utils {
 	/**
 	 * Precalculated dark green color
 	 */
-	static final Color ColorDARK_GREEN = Color.GREEN.darker();
+	public static final Color ColorDARK_GREEN = Color.GREEN.darker();
 	/**
 	 * Precalculated dark red color
 	 */
-	static final Color ColorDARK_RED = Color.RED.darker();
+	public static final Color ColorDARK_RED = Color.RED.darker();
 	/**
 	 * Precalculated dark cyan color
 	 */
-	static final Color ColorDARK_CYAN = Color.CYAN.darker();
+	public static final Color ColorDARK_CYAN = Color.CYAN.darker();
 	/**
 	 * Precalculated dark blue color
 	 */
-	static final Color ColorDARK_BLUE = Color.BLUE.darker();
+	public static final Color ColorDARK_BLUE = Color.BLUE.darker();
 	/**
 	 * Precalculated dark magenta color
 	 */
-	static final Color ColorDARK_MAGENTA = Color.MAGENTA.darker();
+	public static final Color ColorDARK_MAGENTA = Color.MAGENTA.darker();
 	/**
 	 * Precalculated dark pink color
 	 */
-	static final Color ColorDARK_PINK = Color.PINK.darker();
+	public static final Color ColorDARK_PINK = Color.PINK.darker();
 	/**
 	 * Precalculated dark orange color
 	 */
-	static final Color ColorDARK_ORANGE = Color.ORANGE.darker();
+	public static final Color ColorDARK_ORANGE = Color.ORANGE.darker();
 	/**
 	 * Precalculated dark white color
 	 */
-	static final Color ColorDARK_WHITE = Color.WHITE.darker();
+	public static final Color ColorDARK_WHITE = Color.WHITE.darker();
 	/**
 	 * Precalculated dark gray color
 	 */
-	static final Color ColorDARK_GRAY = Color.GRAY.darker();
+	public static final Color ColorDARK_GRAY = Color.GRAY.darker();
 	/**
 	 * Precalculated dark yellow color
 	 */
-	static final Color ColorDARK_YELLOW = Color.YELLOW.darker();
+	public static final Color ColorDARK_YELLOW = Color.YELLOW.darker();
 	/**
 	 * Precalculated dark white color
 	 */
-	static final Color ColorDARKWHITE = new Color(227,227,227);
+	public static final Color ColorDARKWHITE = new Color(227,227,227);
 	/**
 	 * Precalculated brown color
 	 */
-	static final Color ColorBROWN = new Color(150,75,0);
+	public static final Color ColorBROWN = new Color(150,75,0);
 	/**
 	 * Precalculated light brown color
 	 */
-	static final Color ColorLIGHTBROWN = new Color(128,112,64);
+	public static final Color ColorLIGHTBROWN = new Color(128,112,64);
 	/**
 	 * Precalculated green brown color
 	 */
-	static final Color ColorGREENBROWN = new Color(128,132,64);
+	public static final Color ColorGREENBROWN = new Color(128,132,64);
 	/**
 	 * Precalculated poisoned jade color
 	 */
-	static final Color ColorDARKGREEN = new Color(54,84,54);
+	public static final Color ColorDARKGREEN = new Color(54,84,54);
 	/**
 	 * Precalculated light blue color
 	 */
-	static final Color ColorLIGHT_BLUE = new Color(0,0,128);
+	public static final Color ColorLIGHT_BLUE = new Color(0,0,128);
 	/**
 	 * Precalculated violet color
 	 */
-	static final Color ColorVIOLET = new Color(128,0,128);
+	public static final Color ColorVIOLET = new Color(128,0,128);
 	/**
 	 * Precalculated Forest color
 	 */
-	static final Color ColorFOREST = new Color(0,128,0);
+	public static final Color ColorFOREST = new Color(0,128,0);
 	/**
 	 * Precalculated bark color
 	 */
-	static final Color ColorBARK = new Color(96,128,64);
+	public static final Color ColorBARK = new Color(96,128,64);
 	/**
 	 * Precalculated old bark color
 	 */
-	static final Color ColorOLDBARK = new Color(80,40,0);
+	public static final Color ColorOLDBARK = new Color(80,40,0);
 	/**
 	 * Precalculated old bark color
 	 */
-	static final Color ColorDEADBARK = new Color(128,96,64);
+	public static final Color ColorDEADBARK = new Color(128,96,64);
 	/**
 	 * Precalculated jade color
 	 */
-	static final Color ColorJADE = new Color(0,168,107);
+	public static final Color ColorJADE = new Color(0,168,107);
 	/**
 	 * Precalculated spring color
 	 */
-	static final Color ColorSPRING = new Color(0,255,128);
+	public static final Color ColorSPRING = new Color(0,255,128);
 	/**
 	 * Precalculated leaf color
 	 */
-	static final Color ColorLEAF = new Color(92,184,0);
+	public static final Color ColorLEAF = new Color(92,184,0);
 	/**
 	 * Precalculated lime color
 	 */
-	static final Color ColorLIME = new Color(176,255,0);
+	public static final Color ColorLIME = new Color(176,255,0);
 	/**
 	 * Precalculated summer color
 	 */
-	static final Color ColorSUMMER = new Color(128,255,64);
+	public static final Color ColorSUMMER = new Color(128,255,64);
 	/**
 	 * Precalculated winter color
 	 */
-	static final Color ColorWINTER = new Color(54,84,0);
+	public static final Color ColorWINTER = new Color(54,84,0);
 	/**
 	 * Precalculated teal color
 	 */
-	static final Color ColorTEAL = new Color(0,128,128);
+	public static final Color ColorTEAL = new Color(0,128,128);
+	/**
+	 * Precalculated spin color
+	 */
+	public static final Color ColorSPIN = new Color(128,255,224);
 	/**
 	 * Precalculated eye color
 	 */
-	static final Color ColorEYE = new Color(0,64,64);
+	public static final Color ColorEYE = new Color(0,64,64);
 	/**
 	 * Precalculated vision color (used for non terminal eyes)
 	 */
-	static final Color ColorVISION = new Color(232,145,70);
+	public static final Color ColorVISION = new Color(232,145,70);
 	/**
 	 * Precalculated mint color
 	 */
-	static final Color ColorMINT = new Color(160,224,160);
+	public static final Color ColorMINT = new Color(160,224,160);
 	/**
 	 * Precalculated maroon color
 	 */
-	static final Color ColorMAROON = new Color(128,0,0);
+	public static final Color ColorMAROON = new Color(128,0,0);
+	/**
+	 * Precalculated crimson color
+	 */
+	public static final Color ColorCRIMSON = new Color(220,40,60);
+	/**
+	 * Precalculated pierced color
+	 */
+	public static final Color ColorPIERCED = new Color(220,220,160);
 	/**
 	 * Precalculated olive color
 	 */
-	static final Color ColorOLIVE = new Color(176,176,0);
+	public static final Color ColorOLIVE = new Color(176,176,0);
 	/**
 	 * Precalculated dark olive color
 	 */
-	static final Color ColorDARKOLIVE = new Color(88,88,0);
+	public static final Color ColorDARKOLIVE = new Color(88,88,0);
 	/**
 	 * Precalculated cream color
 	 */
-	static final Color ColorCREAM = new Color(208,192,140);
+	public static final Color ColorCREAM = new Color(208,192,140);
 	/**
 	 * Precalculated rose color
 	 */
-	static final Color ColorROSE = new Color(255,0,128);
+	public static final Color ColorROSE = new Color(255,0,128);
 	/**
 	 * Precalculated coral color
 	 */
-	static final Color ColorCORAL = new Color(255,100,138);
+	public static final Color ColorCORAL = new Color(255,100,138);
 	/**
 	 * Precalculated ochre color
 	 */
-	static final Color ColorOCHRE = new Color(204,119,34);
+	public static final Color ColorOCHRE = new Color(204,119,34);
 	/**
 	 * Precalculated sky color
 	 */
-	static final Color ColorSKY = new Color(128,192,255);
+	public static final Color ColorSKY = new Color(128,192,255);
 	/**
 	 * Precalculated deep sky color
 	 */
-	static final Color ColorDEEPSKY = new Color(64,96,255);
+	public static final Color ColorDEEPSKY = new Color(64,96,255);
 	/**
 	 * Precalculated ice color
 	 */
-	static final Color ColorICE = new Color(64,96,128);
+	public static final Color ColorICE = new Color(64,96,128);
 	/**
 	 * Precalculated lilac color
 	 */
-	static final Color ColorLILAC = new Color(192,128,255);
+	public static final Color ColorLILAC = new Color(192,128,255);
 	/**
 	 * Precalculated dark lilac color
 	 */
-	static final Color ColorDARKLILAC = new Color(96,64,96);
+	public static final Color ColorDARKLILAC = new Color(96,64,96);
 	/**
 	 * Precalculated fire color
 	 */
-	static final Color ColorFIRE = new Color(255,100,0);
+	public static final Color ColorFIRE = new Color(255,100,0);
 	/**
 	 * Precalculated dark fire color
 	 */
-	static final Color ColorDARKFIRE = new Color(232,146,70);
+	public static final Color ColorDARKFIRE = new Color(232,146,70);
 	/**
 	 * Precalculated grass color
 	 */
-	static final Color ColorGRASS = new Color(144,176,64);
+	public static final Color ColorGRASS = new Color(144,176,64);
 	/**
 	 * Precalculated purple color
 	 */
-	static final Color ColorPURPLE = new Color(168,0,84);
+	public static final Color ColorPURPLE = new Color(168,0,84);
+	/**
+	 * Precalculated plankton color
+	 */
+	public static final Color ColorPLANKTON = new Color(96,192,192);
 	/**
 	 * Precalculated c4 color
 	 */
-	static final Color ColorC4 = new Color(96,192,96);
+	public static final Color ColorC4 = new Color(96,192,96);
 	/**
 	 * Precalculated dark jade color
 	 */
-	static final Color ColorDARKJADE = new Color(0,84,54);
+	public static final Color ColorDARKJADE = new Color(0,84,54);
 	/**
 	 * Precalculated gold color
 	 */
-	static final Color ColorGOLD = new Color(212,175,55);
+	public static final Color ColorGOLD = new Color(212,175,55);
 	/**
 	 * Precalculated blond color
 	 */
-	static final Color ColorBLOND = new Color(255,255,128);
+	public static final Color ColorBLOND = new Color(255,255,128);
 	/**
 	 * Precalculated flower color
 	 */
-	static final Color ColorFLOWER = new Color(128,128,255);
+	public static final Color ColorFLOWER = new Color(128,128,255);
 	/**
 	 * Precalculated auburn color
 	 */
-	static final Color ColorAUBURN = new Color(128,48,48);
+	public static final Color ColorAUBURN = new Color(128,48,48);
 	/**
 	 * Precalculated indigo color
 	 */
-	static final Color ColorINDIGO = new Color(111,0,255);
+	public static final Color ColorINDIGO = new Color(111,0,255);
 	/**
 	 * Precalculated lavender color
 	 */
-	static final Color ColorLAVENDER = new Color(128,96,176);
+	public static final Color ColorLAVENDER = new Color(128,96,176);
 	/**
 	 * Precalculated fallow color
 	 */
-	static final Color ColorFALLOW = new Color(150,113,23);
+	public static final Color ColorFALLOW = new Color(150,113,23);
 	/**
 	 * Precalculated spore color
 	 */
-	static final Color ColorSPORE = new Color(0,80,160);
+	public static final Color ColorSPORE = new Color(0,80,160);
 	/**
 	 * Precalculated fruit color
 	 */
-	static final Color ColorFRUIT = new Color(255,128,192);
+	public static final Color ColorFRUIT = new Color(255,128,192);
 	/**
 	 * Precalculated plague color
 	 */
-	static final Color ColorPLAGUE = new Color(255,192,255);
+	public static final Color ColorPLAGUE = new Color(255,192,255);
 	/**
 	 * Precalculated spike color
 	 */
-	static final Color ColorSPIKE = new Color(164,132,100);
+	public static final Color ColorSPIKE = new Color(164,132,100);
 	/**
 	 * Precalculated spike point color
 	 */
-	static final Color ColorSPIKEPOINT = new Color(164,132,99);
+	public static final Color ColorSPIKEPOINT = new Color(164,132,99);
 	/**
 	 * Precalculated broken defense color
 	 */
-	static final Color ColorBROKEN = new Color(96,128,96);
+	public static final Color ColorBROKEN = new Color(96,128,96);
 	/**
 	 * Precalculated dark color
 	 */
-	static final Color ColorDARK = new Color(64,32,16);
+	public static final Color ColorDARK = new Color(64,32,16);
 	/**
 	 * Used through all program to calculate random numbers
 	 */
@@ -1793,10 +1905,12 @@ public final class Utils {
 		if (c.equals(Utils.ColorGRASS)) return Messages.getString("T_GRASS"); //$NON-NLS-1$
 		if (c.equals(Utils.ColorBARK)) return Messages.getString("T_BARK"); //$NON-NLS-1$
 		if (c.equals(Utils.ColorPURPLE)) return Messages.getString("T_PURPLE"); //$NON-NLS-1$
+		if (c.equals(Utils.ColorPLANKTON)) return Messages.getString("T_PLANKTON"); //$NON-NLS-1$
 		if (c.equals(Color.RED)) return Messages.getString("T_RED"); //$NON-NLS-1$
 		if (c.equals(Utils.ColorFIRE)) return Messages.getString("T_FIRE"); //$NON-NLS-1$
 		if (c.equals(Color.ORANGE)) return Messages.getString("T_ORANGE"); //$NON-NLS-1$
 		if (c.equals(Utils.ColorMAROON)) return Messages.getString("T_MAROON"); //$NON-NLS-1$
+		if (c.equals(Utils.ColorCRIMSON)) return Messages.getString("T_CRIMSON"); //$NON-NLS-1$
 		if (c.equals(Color.PINK)) return Messages.getString("T_PINK"); //$NON-NLS-1$
 		if (c.equals(Utils.ColorCREAM)) return Messages.getString("T_CREAM"); //$NON-NLS-1$
 		if (c.equals(Color.LIGHT_GRAY)) return Messages.getString("T_SILVER"); //$NON-NLS-1$
@@ -1819,6 +1933,7 @@ public final class Utils {
 		if (c.equals(Utils.ColorROSE)) return Messages.getString("T_ROSE"); //$NON-NLS-1$
 		if (c.equals(Color.CYAN)) return Messages.getString("T_CYAN"); //$NON-NLS-1$
 		if (c.equals(Utils.ColorTEAL)) return Messages.getString("T_TEAL"); //$NON-NLS-1$
+		if (c.equals(Utils.ColorSPIN)) return Messages.getString("T_SPIN"); //$NON-NLS-1$
 		if (c.equals(Color.YELLOW)) return Messages.getString("T_YELLOW"); //$NON-NLS-1$
 		if (c.equals(Utils.ColorAUBURN)) return Messages.getString("T_AUBURN"); //$NON-NLS-1$
 		if (c.equals(Utils.ColorINDIGO)) return Messages.getString("T_INDIGO"); //$NON-NLS-1$
@@ -1843,6 +1958,7 @@ public final class Utils {
 			prefs.putDouble("INITIAL_O2",INITIAL_O2); //$NON-NLS-1$
 			prefs.putDouble("INITIAL_CO2",INITIAL_CO2); //$NON-NLS-1$
 			prefs.putDouble("INITIAL_CH4",INITIAL_CH4); //$NON-NLS-1$
+			prefs.putDouble("INITIAL_DETRITUS",INITIAL_DETRITUS); //$NON-NLS-1$
 			prefs.putInt("ORGANISMS_VECTOR_SIZE",ORGANISMS_VECTOR_SIZE); //$NON-NLS-1$
 			prefs.putInt("WORLD_WIDTH",WORLD_WIDTH); //$NON-NLS-1$
 			prefs.putInt("WORLD_HEIGHT",WORLD_HEIGHT); //$NON-NLS-1$
@@ -1850,6 +1966,7 @@ public final class Utils {
 			prefs.putInt("AGE_DIVISOR",AGE_DIVISOR); //$NON-NLS-1$
 			prefs.putInt("CO2_TO_CH4_DIVISOR",CO2_TO_CH4_DIVISOR); //$NON-NLS-1$
 			prefs.putInt("CH4_TO_CO2_DIVISOR",CH4_TO_CO2_DIVISOR); //$NON-NLS-1$
+			prefs.putInt("DETRITUS_TO_CO2_DIVISOR",DETRITUS_TO_CO2_DIVISOR); //$NON-NLS-1$
 			prefs.putDouble("RUBBING",RUBBING); //$NON-NLS-1$
 			prefs.putInt("META_MUTATION_RATE",META_MUTATION_RATE); //$NON-NLS-1$
 			prefs.putInt("MAX_MUTATION_RATE",MAX_MUTATION_RATE); //$NON-NLS-1$
@@ -1896,11 +2013,14 @@ public final class Utils {
 			prefs.putDouble("JADE_ENERGY_CONSUMPTION",JADE_ENERGY_CONSUMPTION); //$NON-NLS-1$
 			prefs.putDouble("GRASS_ENERGY_CONSUMPTION",GRASS_ENERGY_CONSUMPTION); //$NON-NLS-1$
 			prefs.putDouble("PURPLE_ENERGY_CONSUMPTION",PURPLE_ENERGY_CONSUMPTION); //$NON-NLS-1$
+			prefs.putDouble("PLANKTON_ENERGY_CONSUMPTION",PLANKTON_ENERGY_CONSUMPTION); //$NON-NLS-1$
 			prefs.putDouble("C4_ENERGY_CONSUMPTION",C4_ENERGY_CONSUMPTION); //$NON-NLS-1$
 			prefs.putDouble("VIOLET_ENERGY_CONSUMPTION",VIOLET_ENERGY_CONSUMPTION); //$NON-NLS-1$
 			prefs.putDouble("TEAL_ENERGY_CONSUMPTION",TEAL_ENERGY_CONSUMPTION); //$NON-NLS-1$
+			prefs.putDouble("SPIN_ENERGY_CONSUMPTION",SPIN_ENERGY_CONSUMPTION); //$NON-NLS-1$
 			prefs.putDouble("EYE_ENERGY_CONSUMPTION",EYE_ENERGY_CONSUMPTION); //$NON-NLS-1$
 			prefs.putDouble("MAROON_ENERGY_CONSUMPTION",MAROON_ENERGY_CONSUMPTION); //$NON-NLS-1$
+			prefs.putDouble("CRIMSON_ENERGY_CONSUMPTION",CRIMSON_ENERGY_CONSUMPTION); //$NON-NLS-1$
 			prefs.putDouble("OLIVE_ENERGY_CONSUMPTION",OLIVE_ENERGY_CONSUMPTION); //$NON-NLS-1$
 			prefs.putDouble("MINT_ENERGY_CONSUMPTION",MINT_ENERGY_CONSUMPTION); //$NON-NLS-1$
 			prefs.putDouble("CREAM_ENERGY_CONSUMPTION",CREAM_ENERGY_CONSUMPTION); //$NON-NLS-1$
@@ -1943,11 +2063,14 @@ public final class Utils {
 			prefs.putInt("JADE_PROB",JADE_PROB); //$NON-NLS-1$
 			prefs.putInt("GRASS_PROB",GRASS_PROB); //$NON-NLS-1$
 			prefs.putInt("PURPLE_PROB",PURPLE_PROB); //$NON-NLS-1$
+			prefs.putInt("PLANKTON_PROB",PLANKTON_PROB); //$NON-NLS-1$
 			prefs.putInt("C4_PROB",C4_PROB); //$NON-NLS-1$
 			prefs.putInt("VIOLET_PROB",VIOLET_PROB); //$NON-NLS-1$
 			prefs.putInt("TEAL_PROB",TEAL_PROB); //$NON-NLS-1$
+			prefs.putInt("SPIN_PROB",SPIN_PROB); //$NON-NLS-1$
 			prefs.putInt("EYE_PROB",EYE_PROB); //$NON-NLS-1$
 			prefs.putInt("MAROON_PROB",MAROON_PROB); //$NON-NLS-1$
+			prefs.putInt("CRIMSON_PROB",CRIMSON_PROB); //$NON-NLS-1$
 			prefs.putInt("OLIVE_PROB",OLIVE_PROB); //$NON-NLS-1$
 			prefs.putInt("MINT_PROB",MINT_PROB); //$NON-NLS-1$
 			prefs.putInt("CREAM_PROB",CREAM_PROB); //$NON-NLS-1$
@@ -1981,11 +2104,14 @@ public final class Utils {
 			prefs.put("repaintWorldStrategy",repaintWorldStrategy.toString()); //$NON-NLS-1$
 			prefs.putInt("STATUS_BAR_REFRESH_FPS",STATUS_BAR_REFRESH_FPS); //$NON-NLS-1$
 			prefs.putInt("STATISTICS_REFRESH_FPS",STATISTICS_REFRESH_FPS); //$NON-NLS-1$
+			prefs.putInt("THREAD_COUNT",THREAD_COUNT); //$NON-NLS-1$
 			prefs.putBoolean("AUTO_BACKUP",AUTO_BACKUP);
 			prefs.putBoolean("COMPRESS_BACKUPS",COMPRESS_BACKUPS);
 			prefs.putBoolean("AUTO_BACKUP_CSV",AUTO_BACKUP_CSV);
 			prefs.putBoolean("AUTO_BACKUP_WORLD_PNG",AUTO_BACKUP_WORLD_PNG);
 			prefs.putBoolean("AUTO_BACKUP_STATISTICS_PNG",AUTO_BACKUP_STATISTICS_PNG);
+			prefs.putBoolean("AUTO_BACKUP_CLADES_PNG",AUTO_BACKUP_CLADES_PNG);
+			prefs.putBoolean("AUTO_BACKUP_IMAGES_AS_FOLDERS",AUTO_BACKUP_IMAGES_AS_FOLDERS);
 			prefs.putInt("BACKUP_DELAY",BACKUP_DELAY);
 			prefs.putInt("LOCAL_PORT",LOCAL_PORT); //$NON-NLS-1$
 			prefs.put("USER_NAME", USER_NAME); //$NON-NLS-1$
@@ -2026,6 +2152,7 @@ public final class Utils {
 			INITIAL_O2 = prefs.getDouble("INITIAL_O2",DEF_INITIAL_O2); //$NON-NLS-1$
 			INITIAL_CO2 = prefs.getDouble("INITIAL_CO2",DEF_INITIAL_CO2); //$NON-NLS-1$
 			INITIAL_CH4 = prefs.getDouble("INITIAL_CH4",DEF_INITIAL_CH4); //$NON-NLS-1$
+			INITIAL_DETRITUS = prefs.getDouble("INITIAL_DETRITUS",DEF_INITIAL_DETRITUS); //$NON-NLS-1$
 			ORGANISMS_VECTOR_SIZE = prefs.getInt("ORGANISMS_VECTOR_SIZE",DEF_ORGANISMS_VECTOR_SIZE); //$NON-NLS-1$
 			WORLD_WIDTH = prefs.getInt("WORLD_WIDTH",DEF_WORLD_WIDTH); //$NON-NLS-1$
 			WORLD_HEIGHT = prefs.getInt("WORLD_HEIGHT",DEF_WORLD_HEIGHT); //$NON-NLS-1$
@@ -2033,6 +2160,7 @@ public final class Utils {
 			AGE_DIVISOR = prefs.getInt("AGE_DIVISOR",DEF_AGE_DIVISOR); //$NON-NLS-1$
 			CO2_TO_CH4_DIVISOR = prefs.getInt("CO2_TO_CH4_DIVISOR",DEF_CO2_TO_CH4_DIVISOR); //$NON-NLS-1$
 			CH4_TO_CO2_DIVISOR = prefs.getInt("CH4_TO_CO2_DIVISOR",DEF_CH4_TO_CO2_DIVISOR); //$NON-NLS-1$
+			DETRITUS_TO_CO2_DIVISOR = prefs.getInt("DETRITUS_TO_CO2_DIVISOR",DEF_DETRITUS_TO_CO2_DIVISOR); //$NON-NLS-1$
 			RUBBING = prefs.getDouble("RUBBING",DEF_RUBBING); //$NON-NLS-1$
 			META_MUTATION_RATE = prefs.getInt("META_MUTATION_RATE",DEF_META_MUTATION_RATE); //$NON-NLS-1$
 			MAX_MUTATION_RATE = prefs.getInt("MAX_MUTATION_RATE",DEF_MAX_MUTATION_RATE); //$NON-NLS-1$
@@ -2079,11 +2207,14 @@ public final class Utils {
 			JADE_ENERGY_CONSUMPTION = prefs.getDouble("JADE_ENERGY_CONSUMPTION",DEF_JADE_ENERGY_CONSUMPTION); //$NON-NLS-1$
 			GRASS_ENERGY_CONSUMPTION = prefs.getDouble("GRASS_ENERGY_CONSUMPTION",DEF_GRASS_ENERGY_CONSUMPTION); //$NON-NLS-1$
 			PURPLE_ENERGY_CONSUMPTION = prefs.getDouble("PURPLE_ENERGY_CONSUMPTION",DEF_PURPLE_ENERGY_CONSUMPTION); //$NON-NLS-1$
+			PLANKTON_ENERGY_CONSUMPTION = prefs.getDouble("PLANKTON_ENERGY_CONSUMPTION",DEF_PLANKTON_ENERGY_CONSUMPTION); //$NON-NLS-1$
 			C4_ENERGY_CONSUMPTION = prefs.getDouble("C4_ENERGY_CONSUMPTION",DEF_C4_ENERGY_CONSUMPTION); //$NON-NLS-1$
 			VIOLET_ENERGY_CONSUMPTION = prefs.getDouble("VIOLET_ENERGY_CONSUMPTION",DEF_VIOLET_ENERGY_CONSUMPTION); //$NON-NLS-1$
 			TEAL_ENERGY_CONSUMPTION = prefs.getDouble("TEAL_ENERGY_CONSUMPTION",DEF_TEAL_ENERGY_CONSUMPTION); //$NON-NLS-1$
+			SPIN_ENERGY_CONSUMPTION = prefs.getDouble("SPIN_ENERGY_CONSUMPTION",DEF_SPIN_ENERGY_CONSUMPTION); //$NON-NLS-1$
 			EYE_ENERGY_CONSUMPTION = prefs.getDouble("EYE_ENERGY_CONSUMPTION",DEF_EYE_ENERGY_CONSUMPTION); //$NON-NLS-1$
 			MAROON_ENERGY_CONSUMPTION = prefs.getDouble("MAROON_ENERGY_CONSUMPTION",DEF_MAROON_ENERGY_CONSUMPTION); //$NON-NLS-1$
+			CRIMSON_ENERGY_CONSUMPTION = prefs.getDouble("CRIMSON_ENERGY_CONSUMPTION",DEF_CRIMSON_ENERGY_CONSUMPTION); //$NON-NLS-1$
 			OLIVE_ENERGY_CONSUMPTION = prefs.getDouble("OLIVE_ENERGY_CONSUMPTION",DEF_OLIVE_ENERGY_CONSUMPTION); //$NON-NLS-1$
 			MINT_ENERGY_CONSUMPTION = prefs.getDouble("MINT_ENERGY_CONSUMPTION",DEF_MINT_ENERGY_CONSUMPTION); //$NON-NLS-1$
 			CREAM_ENERGY_CONSUMPTION = prefs.getDouble("CREAM_ENERGY_CONSUMPTION",DEF_CREAM_ENERGY_CONSUMPTION); //$NON-NLS-1$
@@ -2126,11 +2257,14 @@ public final class Utils {
 			JADE_PROB = prefs.getInt("JADE_PROB",DEF_JADE_PROB); //$NON-NLS-1$
 			GRASS_PROB = prefs.getInt("GRASS_PROB",DEF_GRASS_PROB); //$NON-NLS-1$
 			PURPLE_PROB = prefs.getInt("PURPLE_PROB",DEF_PURPLE_PROB); //$NON-NLS-1$
+			PLANKTON_PROB = prefs.getInt("PLANKTON_PROB",DEF_PLANKTON_PROB); //$NON-NLS-1$
 			C4_PROB = prefs.getInt("C4_PROB",DEF_C4_PROB); //$NON-NLS-1$
 			VIOLET_PROB = prefs.getInt("VIOLET_PROB",DEF_VIOLET_PROB); //$NON-NLS-1$
 			TEAL_PROB = prefs.getInt("TEAL_PROB",DEF_TEAL_PROB); //$NON-NLS-1$
+			SPIN_PROB = prefs.getInt("SPIN_PROB",DEF_SPIN_PROB); //$NON-NLS-1$
 			EYE_PROB = prefs.getInt("EYE_PROB",DEF_EYE_PROB); //$NON-NLS-1$
 			MAROON_PROB = prefs.getInt("MAROON_PROB",DEF_MAROON_PROB); //$NON-NLS-1$
+			CRIMSON_PROB = prefs.getInt("CRIMSON_PROB",DEF_CRIMSON_PROB); //$NON-NLS-1$
 			OLIVE_PROB = prefs.getInt("OLIVE_PROB",DEF_OLIVE_PROB); //$NON-NLS-1$
 			MINT_PROB = prefs.getInt("MINT_PROB",DEF_MINT_PROB); //$NON-NLS-1$
 			CREAM_PROB = prefs.getInt("CREAM_PROB",DEF_CREAM_PROB); //$NON-NLS-1$
@@ -2164,11 +2298,14 @@ public final class Utils {
 			repaintWorldStrategy = RepaintWorldStrategy.valueOf(prefs.get("repaintWorldStrategy", DEF_repaintWorldStrategy)); //$NON-NLS-1$
 			STATUS_BAR_REFRESH_FPS = prefs.getInt("STATUS_BAR_REFRESH_FPS",DEF_STATUS_BAR_REFRESH_FPS); //$NON-NLS-1$
 			STATISTICS_REFRESH_FPS = prefs.getInt("STATISTICS_REFRESH_FPS",DEF_STATISTICS_REFRESH_FPS); //$NON-NLS-1$
+			THREAD_COUNT = prefs.getInt("THREAD_COUNT",DEF_THREAD_COUNT); //$NON-NLS-1$
 			AUTO_BACKUP = prefs.getBoolean("AUTO_BACKUP",DEF_AUTO_BACKUP);
 			COMPRESS_BACKUPS = prefs.getBoolean("COMPRESS_BACKUPS",DEF_COMPRESS_BACKUPS);
 			AUTO_BACKUP_CSV = prefs.getBoolean("AUTO_BACKUP_CSV",DEF_AUTO_BACKUP_CSV);
 			AUTO_BACKUP_WORLD_PNG = prefs.getBoolean("AUTO_BACKUP_WORLD_PNG",DEF_AUTO_BACKUP_WORLD_PNG);
 			AUTO_BACKUP_STATISTICS_PNG = prefs.getBoolean("AUTO_BACKUP_STATISTICS_PNG",DEF_AUTO_BACKUP_STATISTICS_PNG);
+			AUTO_BACKUP_CLADES_PNG = prefs.getBoolean("AUTO_BACKUP_CLADES_PNG",DEF_AUTO_BACKUP_CLADES_PNG);
+			AUTO_BACKUP_IMAGES_AS_FOLDERS = prefs.getBoolean("AUTO_BACKUP_IMAGES_AS_FOLDERS",DEF_AUTO_BACKUP_IMAGES_AS_FOLDERS);
 			BACKUP_DELAY = prefs.getInt("BACKUP_DELAY",DEF_BACKUP_DELAY);
 			LOCAL_PORT = prefs.getInt("LOCAL_PORT",DEF_LOCAL_PORT); //$NON-NLS-1$
 			USER_NAME = prefs.get("USER_NAME",DEF_USER_NAME);
