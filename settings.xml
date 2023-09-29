@@ -5,4 +5,11 @@
     
     <!-- Local Repository -->
     <localRepository>${user.home}/.m2/repository</localRepository>
+    <servers>
+        <server>
+            <id>github</id>
+            <username>0x1F602</username>
+            <password>${{ secrets.GITHUB_TOKEN }}</password>
+        </server>
+    </servers>
 </settings>
