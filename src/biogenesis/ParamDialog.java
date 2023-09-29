@@ -51,6 +51,7 @@ public class ParamDialog extends JDialog {
 	private JTextField widthText = null;
 	private JTextField heightText = null;
 	private JTextField delayText = null;
+	private JTextField threadCountText = null;
 	private JRadioButton repaintWorldStrategyRadio1 = null;
 	private JRadioButton repaintWorldStrategyRadio2 = null;
 	private JRadioButton repaintWorldStrategyRadio3 = null;
@@ -59,6 +60,8 @@ public class ParamDialog extends JDialog {
 	private JCheckBox autoBackupsCSVCheck = null;
 	private JCheckBox autoBackupsWorldPngCheck = null;
 	private JCheckBox autoBackupsStatisticsPngCheck = null;
+	private JCheckBox autoBackupsCladesPngCheck = null;
+	private JCheckBox autoBackupsImagesAsFoldersCheck = null;
 	private JTextField backupDelayText = null;
 	protected JRadioButton hardwareNoneRadio = null;
 	protected JRadioButton hardwareOpenGLRadio = null;
@@ -73,10 +76,12 @@ public class ParamDialog extends JDialog {
 	private JTextField initialO2Text = null;
 	private JTextField initialCO2Text = null;
 	private JTextField initialCH4Text = null;
+	private JTextField initialDetritusText = null;
 	private JTextField maxageText = null;
 	private JTextField agedivisorText = null;
 	private JTextField CO2toCH4divisorText = null;
 	private JTextField CH4toCO2divisorText = null;
+	private JTextField detritustoCO2divisorText = null;
 	private JTextField metamutationrateText = null;
 	private JTextField maxmutationrateText = null;
 	private JTextField minmutationrateText = null;
@@ -106,11 +111,14 @@ public class ParamDialog extends JDialog {
 	private JTextField jadecostText = null;
 	private JTextField grasscostText = null;
 	private JTextField purplecostText = null;
+	private JTextField planktoncostText = null;
 	private JTextField barkcostText = null;
 	private JTextField violetcostText = null;
 	private JTextField tealcostText = null;
+	private JTextField spincostText = null;
 	private JTextField eyecostText = null;
 	private JTextField marooncostText = null;
+	private JTextField crimsoncostText = null;
 	private JTextField olivecostText = null;
 	private JTextField mintcostText = null;
 	private JTextField creamcostText = null;
@@ -172,11 +180,14 @@ public class ParamDialog extends JDialog {
 	private JTextField jadeprobText = null;
 	private JTextField grassprobText = null;
 	private JTextField purpleprobText = null;
+	private JTextField planktonprobText = null;
 	private JTextField barkprobText = null;
 	private JTextField violetprobText = null;
 	private JTextField tealprobText = null;
+	private JTextField spinprobText = null;
 	private JTextField eyeprobText = null;
 	private JTextField maroonprobText = null;
+	private JTextField crimsonprobText = null;
 	private JTextField oliveprobText = null;
 	private JTextField mintprobText = null;
 	private JTextField creamprobText = null;
@@ -212,6 +223,7 @@ public class ParamDialog extends JDialog {
 		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 		setComponents();
 		pack();
+		WindowManager.registerWindow(this, getWidth(), getHeight(), 0, 0);
 		setResizable(false);
 		// Configurem les accions dels butons
 		OKButton.addActionListener(new ActionListener() {
@@ -240,6 +252,7 @@ public class ParamDialog extends JDialog {
 		widthText.setText(String.valueOf(Utils.DEF_WORLD_WIDTH));
 		heightText.setText(String.valueOf(Utils.DEF_WORLD_HEIGHT));
 		delayText.setText(String.valueOf(Utils.DEF_DELAY));
+		threadCountText.setText(String.valueOf(Utils.DEF_THREAD_COUNT));
 		repaintWorldStrategyRadio1.setSelected(Utils.DEF_repaintWorldStrategy.equals(RepaintWorldStrategy.ALWAYS.toString()));
 		repaintWorldStrategyRadio2.setSelected(Utils.DEF_repaintWorldStrategy.equals(RepaintWorldStrategy.ONLY_WHEN_MAIN_WINDOW_IS_IN_FOCUS.toString()));
 		repaintWorldStrategyRadio3.setSelected(Utils.DEF_repaintWorldStrategy.equals(RepaintWorldStrategy.WHEN_ANY_APP_WINDOW_IS_IN_FOCUS.toString()));
@@ -248,6 +261,8 @@ public class ParamDialog extends JDialog {
 		autoBackupsCSVCheck.setSelected(Utils.DEF_AUTO_BACKUP_CSV);
 		autoBackupsWorldPngCheck.setSelected(Utils.DEF_AUTO_BACKUP_WORLD_PNG);
 		autoBackupsStatisticsPngCheck.setSelected(Utils.DEF_AUTO_BACKUP_STATISTICS_PNG);
+		autoBackupsCladesPngCheck.setSelected(Utils.DEF_AUTO_BACKUP_CLADES_PNG);
+		autoBackupsImagesAsFoldersCheck.setSelected(Utils.DEF_AUTO_BACKUP_IMAGES_AS_FOLDERS);
 		backupDelayText.setText(String.valueOf(Utils.DEF_BACKUP_DELAY));
 		rubbingText.setText(String.valueOf(Utils.DEF_RUBBING));
 		elasticityText.setText(String.valueOf(Utils.DEF_ELASTICITY));
@@ -258,10 +273,12 @@ public class ParamDialog extends JDialog {
 		initialO2Text.setText(String.valueOf(Utils.DEF_INITIAL_O2));
 		initialCO2Text.setText(String.valueOf(Utils.DEF_INITIAL_CO2));
 		initialCH4Text.setText(String.valueOf(Utils.DEF_INITIAL_CH4));
+		initialDetritusText.setText(String.valueOf(Utils.DEF_INITIAL_DETRITUS));
 		maxageText.setText(String.valueOf(Utils.DEF_MAX_AGE));
 		agedivisorText.setText(String.valueOf(Utils.DEF_AGE_DIVISOR));
 		CO2toCH4divisorText.setText(String.valueOf(Utils.DEF_CO2_TO_CH4_DIVISOR));
 		CH4toCO2divisorText.setText(String.valueOf(Utils.DEF_CH4_TO_CO2_DIVISOR));
+		detritustoCO2divisorText.setText(String.valueOf(Utils.DEF_DETRITUS_TO_CO2_DIVISOR));
 		metamutationrateText.setText(String.valueOf(Utils.DEF_META_MUTATION_RATE));
 		maxmutationrateText.setText(String.valueOf(Utils.DEF_MAX_MUTATION_RATE));
 		minmutationrateText.setText(String.valueOf(Utils.DEF_MIN_MUTATION_RATE));
@@ -311,11 +328,14 @@ public class ParamDialog extends JDialog {
 		jadecostText.setText(String.valueOf(Utils.DEF_JADE_ENERGY_CONSUMPTION));
 		grasscostText.setText(String.valueOf(Utils.DEF_GRASS_ENERGY_CONSUMPTION));
 		purplecostText.setText(String.valueOf(Utils.DEF_PURPLE_ENERGY_CONSUMPTION));
+		planktoncostText.setText(String.valueOf(Utils.DEF_PLANKTON_ENERGY_CONSUMPTION));
 		barkcostText.setText(String.valueOf(Utils.DEF_BARK_ENERGY_CONSUMPTION));
 		violetcostText.setText(String.valueOf(Utils.DEF_VIOLET_ENERGY_CONSUMPTION));
 		tealcostText.setText(String.valueOf(Utils.DEF_TEAL_ENERGY_CONSUMPTION));
+		spincostText.setText(String.valueOf(Utils.DEF_SPIN_ENERGY_CONSUMPTION));
 		eyecostText.setText(String.valueOf(Utils.DEF_EYE_ENERGY_CONSUMPTION));
 		marooncostText.setText(String.valueOf(Utils.DEF_MAROON_ENERGY_CONSUMPTION));
+		crimsoncostText.setText(String.valueOf(Utils.DEF_CRIMSON_ENERGY_CONSUMPTION));
 		olivecostText.setText(String.valueOf(Utils.DEF_OLIVE_ENERGY_CONSUMPTION));
 		mintcostText.setText(String.valueOf(Utils.DEF_MINT_ENERGY_CONSUMPTION));
 		creamcostText.setText(String.valueOf(Utils.DEF_CREAM_ENERGY_CONSUMPTION));
@@ -357,11 +377,14 @@ public class ParamDialog extends JDialog {
 		jadeprobText.setText(String.valueOf(Utils.DEF_JADE_PROB));
 		grassprobText.setText(String.valueOf(Utils.DEF_GRASS_PROB));
 		purpleprobText.setText(String.valueOf(Utils.DEF_PURPLE_PROB));
+		planktonprobText.setText(String.valueOf(Utils.DEF_PLANKTON_PROB));
 		barkprobText.setText(String.valueOf(Utils.DEF_BARK_PROB));
 		violetprobText.setText(String.valueOf(Utils.DEF_VIOLET_PROB));
 		tealprobText.setText(String.valueOf(Utils.DEF_TEAL_PROB));
+		spinprobText.setText(String.valueOf(Utils.DEF_SPIN_PROB));
 		eyeprobText.setText(String.valueOf(Utils.DEF_EYE_PROB));
 		maroonprobText.setText(String.valueOf(Utils.DEF_MAROON_PROB));
+		crimsonprobText.setText(String.valueOf(Utils.DEF_CRIMSON_PROB));
 		oliveprobText.setText(String.valueOf(Utils.DEF_OLIVE_PROB));
 		mintprobText.setText(String.valueOf(Utils.DEF_MINT_PROB));
 		creamprobText.setText(String.valueOf(Utils.DEF_CREAM_PROB));
@@ -452,6 +475,10 @@ public class ParamDialog extends JDialog {
 		panel.add(delayText);
 		label = new JLabel(Messages.getString("T_MILLISECONDS")); //$NON-NLS-1$
 		panel.add(label);
+		label = new JLabel(Messages.getString("T_THREAD_COUNT")); //$NON-NLS-1$
+		panel.add(label);
+		threadCountText = new JTextField(Integer.toString(Utils.THREAD_COUNT),6);
+		panel.add(threadCountText);
 		generalPanel.add(panel);
 		//World repaint
 		panel = new JPanel();
@@ -476,7 +503,7 @@ public class ParamDialog extends JDialog {
 		generalPanel.add(panel);
 		//Backups
 		panel = new JPanel();
-		panel.setLayout(new GridLayout(6,1));
+		panel.setLayout(new GridLayout(8,1));
 		autoBackupsCheck = new JCheckBox(Messages.getString("T_AUTOMATIC_BACKUPS"));
 		label = new JLabel(Messages.getString("T_TIME_BETWEEN_BACKUPS")); //$NON-NLS-1$
 		backupDelayText = new JTextField(Integer.toString(Utils.BACKUP_DELAY),10);
@@ -504,6 +531,14 @@ public class ParamDialog extends JDialog {
 		autoBackupsStatisticsPngCheck = new JCheckBox(Messages.getString("T_AUTOMATIC_BACKUPS_STATISTICS_PNG"));
 		autoBackupsStatisticsPngCheck.setSelected(Utils.AUTO_BACKUP_STATISTICS_PNG);
 		panel.add(autoBackupsStatisticsPngCheck);
+
+		autoBackupsCladesPngCheck = new JCheckBox(Messages.getString("T_AUTOMATIC_BACKUPS_CLADES_PNG"));
+		autoBackupsCladesPngCheck.setSelected(Utils.AUTO_BACKUP_CLADES_PNG);
+		panel.add(autoBackupsCladesPngCheck);
+
+		autoBackupsImagesAsFoldersCheck = new JCheckBox(Messages.getString("T_AUTOMATIC_BACKUPS_IMAGES_AS_FOLDERS"));
+		autoBackupsImagesAsFoldersCheck.setSelected(Utils.AUTO_BACKUP_IMAGES_AS_FOLDERS);
+		panel.add(autoBackupsImagesAsFoldersCheck);
 
 		JPanel backupDelayPanel = new JPanel();
 		backupDelayPanel.add(label);
@@ -581,12 +616,16 @@ public class ParamDialog extends JDialog {
 		initialCO2Text = new JTextField(Double.toString(Utils.INITIAL_CO2),6);
 		panel.add(initialCO2Text);
 		worldPanel.add(panel);
-		// Initial CH4
+		// Initial CH4 -initial Detritus
 		panel = new JPanel();
 		label = new JLabel(Messages.getString("T_INITIAL_METHANE")); //$NON-NLS-1$
 		panel.add(label);
 		initialCH4Text = new JTextField(Double.toString(Utils.INITIAL_CH4),6);
 		panel.add(initialCH4Text);
+		label = new JLabel(Messages.getString("T_INITIAL_DETRITUS")); //$NON-NLS-1$
+		panel.add(label);
+		initialDetritusText = new JTextField(Double.toString(Utils.INITIAL_DETRITUS),6);
+		panel.add(initialDetritusText);
 		worldPanel.add(panel);
 		// CO2 -> CH4 - CH4 -> CO2
 		panel = new JPanel();
@@ -598,6 +637,13 @@ public class ParamDialog extends JDialog {
 		panel.add(label);
 		CH4toCO2divisorText = new JTextField(Integer.toString(Utils.CH4_TO_CO2_DIVISOR),6);
 		panel.add(CH4toCO2divisorText);
+		worldPanel.add(panel);
+		// Detritus -> CO2
+		panel = new JPanel();
+		label = new JLabel(Messages.getString("T_DETRITUS_TO_CO2_DIVISOR")); //$NON-NLS-1$
+		panel.add(label);
+		detritustoCO2divisorText = new JTextField(Integer.toString(Utils.DETRITUS_TO_CO2_DIVISOR),6);
+		panel.add(detritustoCO2divisorText);
 		worldPanel.add(panel);
 		// Rubbing - Elasticity
 		panel = new JPanel();
@@ -854,7 +900,7 @@ public class ParamDialog extends JDialog {
 
 	protected JPanel setGenesTab() {
 		JPanel genesPanel = new JPanel();
-		genesPanel.setLayout(new GridLayout(15,3));
+		genesPanel.setLayout(new GridLayout(17,3));
 		JLabel label;
 
 		genesPanel.add(new JLabel(Messages.getString("T_COLOR2"),SwingConstants.CENTER)); //$NON-NLS-1$
@@ -938,13 +984,20 @@ public class ParamDialog extends JDialog {
 		purplecostText = new JTextField(Double.toString(Utils.PURPLE_ENERGY_CONSUMPTION));
 		genesPanel.add(purplecostText);
 
+		label = new JLabel(Messages.getString("T_PLANKTON"),SwingConstants.CENTER); //$NON-NLS-1$
+		genesPanel.add(label);
+		planktonprobText = new JTextField(Integer.toString(Utils.PLANKTON_PROB));
+		genesPanel.add(planktonprobText);
+		planktoncostText = new JTextField(Double.toString(Utils.PLANKTON_ENERGY_CONSUMPTION));
+		genesPanel.add(planktoncostText);
+
 		label = new JLabel(Messages.getString("T_DARKGRAY"),SwingConstants.CENTER); //$NON-NLS-1$
 		genesPanel.add(label);
 		darkgrayprobText = new JTextField(Integer.toString(Utils.DARKGRAY_PROB));
 		genesPanel.add(darkgrayprobText);
 		darkgraycostText = new JTextField(Double.toString(Utils.DARKGRAY_ENERGY_CONSUMPTION));
 		genesPanel.add(darkgraycostText);
-		
+
 		label = new JLabel(Messages.getString("T_CYAN"),SwingConstants.CENTER); //$NON-NLS-1$
 		genesPanel.add(label);
 		cyanprobText = new JTextField(Integer.toString(Utils.CYAN_PROB));
@@ -958,13 +1011,20 @@ public class ParamDialog extends JDialog {
 		genesPanel.add(tealprobText);
 		tealcostText = new JTextField(Double.toString(Utils.TEAL_ENERGY_CONSUMPTION));
 		genesPanel.add(tealcostText);
+		
+		label = new JLabel(Messages.getString("T_SPIN"),SwingConstants.CENTER); //$NON-NLS-1$
+		genesPanel.add(label);
+		spinprobText = new JTextField(Integer.toString(Utils.SPIN_PROB));
+		genesPanel.add(spinprobText);
+		spincostText = new JTextField(Double.toString(Utils.SPIN_ENERGY_CONSUMPTION));
+		genesPanel.add(spincostText);
 
 		return genesPanel;
 	}
 
 	protected JPanel setGenes2Tab() {
 		JPanel genesPanel = new JPanel();
-		genesPanel.setLayout(new GridLayout(17,3));
+		genesPanel.setLayout(new GridLayout(18,3));
 		JLabel label;
 
 		genesPanel.add(new JLabel(Messages.getString("T_COLOR2"),SwingConstants.CENTER)); //$NON-NLS-1$
@@ -998,6 +1058,13 @@ public class ParamDialog extends JDialog {
 		genesPanel.add(maroonprobText);
 		marooncostText = new JTextField(Double.toString(Utils.MAROON_ENERGY_CONSUMPTION));
 		genesPanel.add(marooncostText);
+		
+		label = new JLabel(Messages.getString("T_CRIMSON"),SwingConstants.CENTER); //$NON-NLS-1$
+		genesPanel.add(label);
+		crimsonprobText = new JTextField(Integer.toString(Utils.CRIMSON_PROB));
+		genesPanel.add(crimsonprobText);
+		crimsoncostText = new JTextField(Double.toString(Utils.CRIMSON_ENERGY_CONSUMPTION));
+		genesPanel.add(crimsoncostText);
 
 		label = new JLabel(Messages.getString("T_PINK"),SwingConstants.CENTER); //$NON-NLS-1$
 		genesPanel.add(label);
@@ -1094,7 +1161,7 @@ public class ParamDialog extends JDialog {
 		genesPanel.add(new JLabel(Messages.getString("T_COLOR2"),SwingConstants.CENTER)); //$NON-NLS-1$
 		genesPanel.add(new JLabel(Messages.getString("T_PROBABILITY"),SwingConstants.CENTER)); //$NON-NLS-1$
 		genesPanel.add(new JLabel(Messages.getString("T_COST"),SwingConstants.CENTER)); //$NON-NLS-1$
-		
+
 		label = new JLabel(Messages.getString("T_SPORE"),SwingConstants.CENTER); //$NON-NLS-1$
 		genesPanel.add(label);
 		sporeprobText = new JTextField(Integer.toString(Utils.SPORE_PROB));
@@ -1237,11 +1304,21 @@ public class ParamDialog extends JDialog {
 		} catch (NumberFormatException ex) {
 			// Keep old value if there is a problem
 		}
+		try {
+			i = Integer.parseInt(threadCountText.getText());
+			if (i > 0) {
+				Utils.THREAD_COUNT = i;
+			}
+		} catch (NumberFormatException ex) {
+			// Keep old value if there is a problem
+		}
 		Utils.AUTO_BACKUP = autoBackupsCheck.isSelected();
 		Utils.COMPRESS_BACKUPS = compressBackupsCheck.isSelected();
 		Utils.AUTO_BACKUP_CSV = autoBackupsCSVCheck.isSelected();
 		Utils.AUTO_BACKUP_WORLD_PNG = autoBackupsWorldPngCheck.isSelected();
 		Utils.AUTO_BACKUP_STATISTICS_PNG = autoBackupsStatisticsPngCheck.isSelected();
+		Utils.AUTO_BACKUP_CLADES_PNG = autoBackupsCladesPngCheck.isSelected();
+		Utils.AUTO_BACKUP_IMAGES_AS_FOLDERS = autoBackupsImagesAsFoldersCheck.isSelected();
 		try {
 			i = Integer.parseInt(backupDelayText.getText());
 			if (i > 0) {
@@ -1265,6 +1342,12 @@ public class ParamDialog extends JDialog {
 		try {
 			d = Double.parseDouble(initialCH4Text.getText());
 			if (d >= 0) Utils.INITIAL_CH4 = d;
+		} catch (NumberFormatException ex) {
+			// Keep old value if there is a problem
+		}
+		try {
+			d = Double.parseDouble(initialDetritusText.getText());
+			if (d >= 0) Utils.INITIAL_DETRITUS = d;
 		} catch (NumberFormatException ex) {
 			// Keep old value if there is a problem
 		}
@@ -1325,6 +1408,12 @@ public class ParamDialog extends JDialog {
 		try {
 			i = Integer.parseInt(CH4toCO2divisorText.getText());
 			if (i > 0) Utils.CH4_TO_CO2_DIVISOR = i;
+		} catch (NumberFormatException ex) {
+			// Keep old value if there is a problem
+		}
+		try {
+			i = Integer.parseInt(detritustoCO2divisorText.getText());
+			if (i > 0) Utils.DETRITUS_TO_CO2_DIVISOR = i;
 		} catch (NumberFormatException ex) {
 			// Keep old value if there is a problem
 		}
@@ -1503,6 +1592,12 @@ public class ParamDialog extends JDialog {
 			// Keep old value if there is a problem
 		}
 		try {
+			d = Double.parseDouble(planktoncostText.getText());
+			if (d > 0) Utils.PLANKTON_ENERGY_CONSUMPTION = d;
+		} catch (NumberFormatException ex) {
+			// Keep old value if there is a problem
+		}
+		try {
 			d = Double.parseDouble(barkcostText.getText());
 			if (d > 0) Utils.BARK_ENERGY_CONSUMPTION = d;
 		} catch (NumberFormatException ex) {
@@ -1521,6 +1616,12 @@ public class ParamDialog extends JDialog {
 			// Keep old value if there is a problem
 		}
 		try {
+			d = Double.parseDouble(spincostText.getText());
+			if (d >= 0) Utils.SPIN_ENERGY_CONSUMPTION = d;
+		} catch (NumberFormatException ex) {
+			// Keep old value if there is a problem
+		}
+		try {
 			d = Double.parseDouble(eyecostText.getText());
 			if (d >= 0) Utils.EYE_ENERGY_CONSUMPTION = d;
 		} catch (NumberFormatException ex) {
@@ -1529,6 +1630,12 @@ public class ParamDialog extends JDialog {
 		try {
 			d = Double.parseDouble(marooncostText.getText());
 			if (d > 0) Utils.MAROON_ENERGY_CONSUMPTION = d;
+		} catch (NumberFormatException ex) {
+			// Keep old value if there is a problem
+		}
+		try {
+			d = Double.parseDouble(crimsoncostText.getText());
+			if (d > 0) Utils.CRIMSON_ENERGY_CONSUMPTION = d;
 		} catch (NumberFormatException ex) {
 			// Keep old value if there is a problem
 		}
@@ -1779,6 +1886,12 @@ public class ParamDialog extends JDialog {
 			// Keep old value if there is a problem
 		}
 		try {
+			i = Integer.parseInt(planktonprobText.getText());
+			if (i >= 0) Utils.PLANKTON_PROB = i;
+		} catch (NumberFormatException ex) {
+			// Keep old value if there is a problem
+		}
+		try {
 			i = Integer.parseInt(barkprobText.getText());
 			if (i >= 0) Utils.BARK_PROB = i;
 		} catch (NumberFormatException ex) {
@@ -1797,6 +1910,12 @@ public class ParamDialog extends JDialog {
 			// Keep old value if there is a problem
 		}
 		try {
+			i = Integer.parseInt(spinprobText.getText());
+			if (i >= 0) Utils.SPIN_PROB = i;
+		} catch (NumberFormatException ex) {
+			// Keep old value if there is a problem
+		}
+		try {
 			i = Integer.parseInt(eyeprobText.getText());
 			if (i >= 0) Utils.EYE_PROB = i;
 		} catch (NumberFormatException ex) {
@@ -1805,6 +1924,12 @@ public class ParamDialog extends JDialog {
 		try {
 			i = Integer.parseInt(maroonprobText.getText());
 			if (i >= 0) Utils.MAROON_PROB = i;
+		} catch (NumberFormatException ex) {
+			// Keep old value if there is a problem
+		}
+		try {
+			i = Integer.parseInt(crimsonprobText.getText());
+			if (i >= 0) Utils.CRIMSON_PROB = i;
 		} catch (NumberFormatException ex) {
 			// Keep old value if there is a problem
 		}

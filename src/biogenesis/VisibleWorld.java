@@ -21,6 +21,8 @@ package biogenesis;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
+import java.awt.Point;
+import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -36,6 +38,8 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JToolBar;
+import javax.swing.JViewport;
+import javax.swing.SwingUtilities;
 
 import org.xml.sax.SAXException;
 
@@ -200,10 +204,7 @@ public class VisibleWorld extends JPanel implements VisibleWorldInterface {
 		public void actionPerformed(ActionEvent e) {
 			Organism b = getSelectedOrganism();
 			if (b != null && b.isAlive()) {
-				double q = Math.min(10, _mainWindow.getWorld()._CO2);
-				_mainWindow.getWorld().addCO2(q);
-				b._energy += q;
-				_mainWindow.getWorld().addO2(q);
+				b._energy += _mainWindow.getWorld().convertCO2ToO2(10);
 			}
 		}
 	}
@@ -268,7 +269,7 @@ public class VisibleWorld extends JPanel implements VisibleWorldInterface {
 					// Ask for file name
 					JFileChooser chooser = new JFileChooser();
 					chooser.setFileFilter(new BioFileFilter("png")); //$NON-NLS-1$
-					int returnVal = chooser.showSaveDialog(null);
+					int returnVal = chooser.showSaveDialog(VisibleWorld.this.getMainWindow());
 					if(returnVal == JFileChooser.APPROVE_OPTION) {
 						int canWrite = JOptionPane.YES_OPTION;
 						File f = chooser.getSelectedFile();
@@ -282,14 +283,14 @@ public class VisibleWorld extends JPanel implements VisibleWorldInterface {
 							try {
 								ImageIO.write(image,"PNG",f); //$NON-NLS-1$
 							} catch (FileNotFoundException ex) {
-								System.err.println(ex.getMessage());
+								ex.printStackTrace();
 							} catch (IOException ex) {
-								System.err.println(ex.getMessage());
+								ex.printStackTrace();
 							}
 						}
 					}
 				} catch (SecurityException ex) {
-					System.err.println(ex.getMessage());
+					ex.printStackTrace();
 					JOptionPane.showMessageDialog(null,Messages.getString("T_PERMISSION_DENIED"),Messages.getString("T_PERMISSION_DENIED"),JOptionPane.ERROR_MESSAGE); //$NON-NLS-1$ //$NON-NLS-2$
 				}
 				_mainWindow._isProcessActive = processState;
@@ -321,6 +322,7 @@ public class VisibleWorld extends JPanel implements VisibleWorldInterface {
 				b._isenhanced = false;
 				b._isakiller = false;
 				b._isgray = false;
+				b._isprotective = false;
 				b._isreproductive = false;
 				b._isinfectious = false;
 				b._iscoral = false;
@@ -403,7 +405,7 @@ public class VisibleWorld extends JPanel implements VisibleWorldInterface {
 		public void actionPerformed(ActionEvent e) {
 			Organism b = getSelectedOrganism();
 			if (b != null && b.isAlive()) {
-				_mainWindow.saveObjectAs(b.getGeneticCode());
+				_mainWindow.saveObjectAs(VisibleWorld.this.getMainWindow(), b.getGeneticCode());
 			}
 		}
 	}
@@ -453,7 +455,7 @@ public class VisibleWorld extends JPanel implements VisibleWorldInterface {
     		_mainWindow._isProcessActive = false;
     		try {
     			JFileChooser chooser = _mainWindow.getGeneticCodeChooser();
-    			int returnVal = chooser.showOpenDialog(null);
+    			int returnVal = chooser.showOpenDialog(VisibleWorld.this.getMainWindow());
     			if (returnVal == JFileChooser.APPROVE_OPTION) {
     				try {
     					// Read XML code from file
@@ -464,15 +466,15 @@ public class VisibleWorld extends JPanel implements VisibleWorldInterface {
     					if (newBiot.pasteOrganism(mouseX, mouseY))
     						_mainWindow.getWorld().addOrganism(newBiot, null);
     				} catch (SAXException ex) {
-    					System.err.println(ex.getMessage());
+    					ex.printStackTrace();
     					JOptionPane.showMessageDialog(null,Messages.getString("T_WRONG_FILE_VERSION"),Messages.getString("T_READ_ERROR"),JOptionPane.ERROR_MESSAGE); //$NON-NLS-1$ //$NON-NLS-2$
     				} catch (IOException ex) {
-    					System.err.println(ex.getMessage());
+    					ex.printStackTrace();
     					JOptionPane.showMessageDialog(null,Messages.getString("T_CANT_READ_FILE"),Messages.getString("T_READ_ERROR"),JOptionPane.ERROR_MESSAGE); //$NON-NLS-1$ //$NON-NLS-2$
 					}
     			}
     		} catch (SecurityException ex) {
-    			System.err.println(ex.getMessage());
+    			ex.printStackTrace();
     			JOptionPane.showMessageDialog(null,Messages.getString("T_PERMISSION_DENIED"),Messages.getString("T_PERMISSION_DENIED"),JOptionPane.ERROR_MESSAGE); //$NON-NLS-1$ //$NON-NLS-2$
     		}
     		_mainWindow._isProcessActive = processState;
@@ -547,22 +549,66 @@ public class VisibleWorld extends JPanel implements VisibleWorldInterface {
 		createActions();
 		createPopupMenu();
 		addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				if (e.getButton() == MouseEvent.BUTTON1) {
-					setSelectedOrganism(findOrganismFromPosition(e.getX(),e.getY()));
-				}
-			}
+			private boolean isPopupTrigger = false;
+			private Point mousePressedAt = new Point(0, 0);
+
 			@Override
 			public void mousePressed(MouseEvent e) {
-				maybeShowPopupMenu(e);
+				isPopupTrigger = e.isPopupTrigger();
+				mousePressedAt = e.getLocationOnScreen();
 			}
 			@Override
 			public void mouseReleased(MouseEvent e) {
-				maybeShowPopupMenu(e);
+				// If the mouse is released at the same position where it was pressed
+				// and it is a popup trigger, show the popup menu.
+				// On macOS the popup is triggered in the `mousePressed` but we can't show
+				// the popup there because that interfered with the panning.
+				if (Math.abs(mousePressedAt.x - e.getLocationOnScreen().x) <= 3 &&
+						Math.abs(mousePressedAt.y - e.getLocationOnScreen().y) <= 3) {
+					if (isPopupTrigger || e.isPopupTrigger()) {
+						showPopupMenu(e);
+					} else if (e.getButton() == MouseEvent.BUTTON1) {
+						setSelectedOrganism(findOrganismFromPosition(e.getX(), e.getY()));
+					}
+				}
 			}
 		});
+
+		// From https://stackoverflow.com/questions/31171502/scroll-jscrollpane-by-dragging-mouse-java-swing
+		MouseAdapter mousePanHandler = new MouseAdapter() {
+			private Point origin;
+
+			@Override
+			public void mousePressed(MouseEvent e) {
+				if (e.getButton() == MouseEvent.BUTTON1) {
+					origin = null;
+				} else {
+					origin = new Point(e.getPoint());
+				}
+			}
+
+			@Override
+			public void mouseDragged(MouseEvent e) {
+				if (origin != null) {
+					JViewport viewPort = (JViewport) SwingUtilities.getAncestorOfClass(JViewport.class, VisibleWorld.this);
+					if (viewPort != null) {
+						int deltaX = origin.x - e.getX();
+						int deltaY = origin.y - e.getY();
+
+						Rectangle view = viewPort.getViewRect();
+						view.x += deltaX;
+						view.y += deltaY;
+
+						scrollRectToVisible(view);
+					}
+				}
+			}
+		};
+
+		addMouseListener(mousePanHandler);
+		addMouseMotionListener(mousePanHandler);
 	}
+
 	/**
 	 * Finds an organism that has the given coordinates inside its bounding box and
 	 * returns a reference to it. If more than on organism satisfies this condition,
@@ -586,7 +632,11 @@ public class VisibleWorld extends JPanel implements VisibleWorldInterface {
 	@Override
 	public void paintComponent (Graphics g) {
 		super.paintComponent(g);
-		_mainWindow.getWorld().draw(g);
+		if (_mainWindow._isProcessActive) {
+			_mainWindow.getWorld().draw(g, false);
+		} else {
+			_mainWindow.getWorld().draw(g, true);
+		}
 		if (getSelectedOrganism() != null) {
 			if (getSelectedOrganism()._infectedGeneticCode != null) {
 				if (((getSelectedOrganism()._timeToReproduce > getSelectedOrganism()._timeToReproduceMax) && ((getSelectedOrganism().active) || (getSelectedOrganism()._sporeversion >= 5)))
@@ -751,21 +801,19 @@ public class VisibleWorld extends JPanel implements VisibleWorldInterface {
 	 *
 	 * @param e
 	 */
-	void maybeShowPopupMenu(MouseEvent e) {
-		if (e.isPopupTrigger()) {
-			mouseX = e.getX();
-			mouseY = e.getY();
-			Organism b = findOrganismFromPosition(mouseX,mouseY);
-			if (b != null) {
-				setSelectedOrganism(b);
-				if (b.isAlive()) {
-					trackAction.setTracking(_mainWindow._trackedOrganism == b);
-					popupAlive.show(e.getComponent(), mouseX, mouseY);
-				}
-				else
-					popupDead.show(e.getComponent(), mouseX, mouseY);
-			} else
-				popupVoid.show(e.getComponent(), mouseX, mouseY);
-		}
+	void showPopupMenu(MouseEvent e) {
+		mouseX = e.getX();
+		mouseY = e.getY();
+		Organism b = findOrganismFromPosition(mouseX,mouseY);
+		if (b != null) {
+			setSelectedOrganism(b);
+			if (b.isAlive()) {
+				trackAction.setTracking(_mainWindow._trackedOrganism == b);
+				popupAlive.show(e.getComponent(), mouseX, mouseY);
+			}
+			else
+				popupDead.show(e.getComponent(), mouseX, mouseY);
+		} else
+			popupVoid.show(e.getComponent(), mouseX, mouseY);
 	}
 }
