@@ -35,7 +35,7 @@
         <repository>
             <id>github</id>
             <name>GitHub Packages</name>
-            <url>https://maven.pkg.github.com/0x1f602/biogenesis</url>
+            <url>https://maven.pkg.github.com/0x1F602/biogenesis</url>
         </repository>
     </distributionManagement>
 
