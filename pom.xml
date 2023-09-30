@@ -7,7 +7,7 @@
     <!-- Define the basic project information -->
     <groupId>com.biogenesis</groupId>
     <artifactId>biogenesis</artifactId>
-    <version>3.0.6-SNAPSHOT</version>
+    <version>3.0.7-SNAPSHOT</version>
     
     <dependencies>
         <dependency>
@@ -51,10 +51,15 @@
                             <goal>copy-resources</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>${project.build.outputDirectory}/biogenesis/messages</outputDirectory>
+                            <outputDirectory>${project.build.outputDirectory}/biogenesis</outputDirectory>
                             <resources>
                                 <resource>
                                     <directory>src/biogenesis/messages</directory>
+                                    <targetPath>messages</targetPath>
+                                </resource>
+                                <resource>
+                                    <directory>src/biogenesis/images</directory>
+                                    <targetPath>images</targetPath>
                                 </resource>
                             </resources>
                         </configuration>
