@@ -7,7 +7,7 @@
     <!-- Define the basic project information -->
     <groupId>com.biogenesis</groupId>
     <artifactId>biogenesis</artifactId>
-    <version>3.0.5-SNAPSHOT</version>
+    <version>3.0.6-SNAPSHOT</version>
     
     <dependencies>
         <dependency>
@@ -35,12 +35,31 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <addClasspath>true</addClasspath>
-                            <classpathPrefix>src/</classpathPrefix>
                             <mainClass>biogenesis.MainWindow</mainClass> <!-- replace with your main class -->
                         </manifest>
                     </archive>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.2.0</version>
+                <executions>
+                    <execution>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.outputDirectory}/biogenesis/messages</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>src/biogenesis/messages</directory>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins> 
          <sourceDirectory>src/biogenesis</sourceDirectory>
