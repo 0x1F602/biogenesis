@@ -7,7 +7,7 @@
     <!-- Define the basic project information -->
     <groupId>com.biogenesis</groupId>
     <artifactId>biogenesis</artifactId>
-    <version>3.0.4-SNAPSHOT</version>
+    <version>3.0.5-SNAPSHOT</version>
     
     <dependencies>
         <dependency>
