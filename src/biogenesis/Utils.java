@@ -683,6 +683,10 @@ public final class Utils {
 	 */
 	final static boolean DEF_AUTO_BACKUP = false;
 	/**
+	 * This is the default value for having or not having automatic saves.
+	 */
+	final static boolean DEF_AUTO_SAVE = false;
+	/**
 	 * This is the default value for compressing or not the backups.
 	 */
 	final static boolean DEF_COMPRESS_BACKUPS = false;
@@ -718,6 +722,10 @@ public final class Utils {
 	 * This is the default number of game time units that pass between backups.
 	 */
 	final static int DEF_BACKUP_DELAY = 100;
+	/**
+	 * This is the default number of game time units that pass between saves.
+	 */
+	final static int DEF_SAVE_DELAY = 100;
 	/**
 	 * This is the default port where the net server will listen for connections.
 	 */
@@ -1424,6 +1432,10 @@ public final class Utils {
 	 * This is the value for having or not having automatic backups.
 	 */
 	static boolean AUTO_BACKUP = DEF_AUTO_BACKUP;
+	/** 
+	 * This is the value for having or not having an autosave.
+	 */
+	static boolean AUTO_SAVE = DEF_AUTO_SAVE;
 	/**
 	 * If true the backups will be compressed using gzip. Otherwise it's uncompressed serialized object.
 	 */
@@ -1460,6 +1472,10 @@ public final class Utils {
 	 * This is the number of game time units that pass between backups.
 	 */
 	static int BACKUP_DELAY = DEF_BACKUP_DELAY;
+	/**
+	 * This is the number of game time units that pass between autosaves.
+	 */
+	static int SAVE_DELAY = DEF_SAVE_DELAY;
 	/**
 	 * This is the port where the net server will listen for connections.
 	 */
@@ -2106,6 +2122,8 @@ public final class Utils {
 			prefs.putInt("STATISTICS_REFRESH_FPS",STATISTICS_REFRESH_FPS); //$NON-NLS-1$
 			prefs.putInt("THREAD_COUNT",THREAD_COUNT); //$NON-NLS-1$
 			prefs.putBoolean("AUTO_BACKUP",AUTO_BACKUP);
+			prefs.putBoolean("AUTO_SAVE",AUTO_SAVE);
+			prefs.putInt("SAVE_DELAY",SAVE_DELAY);
 			prefs.putBoolean("COMPRESS_BACKUPS",COMPRESS_BACKUPS);
 			prefs.putBoolean("AUTO_BACKUP_CSV",AUTO_BACKUP_CSV);
 			prefs.putBoolean("AUTO_BACKUP_WORLD_PNG",AUTO_BACKUP_WORLD_PNG);
@@ -2299,6 +2317,7 @@ public final class Utils {
 			STATUS_BAR_REFRESH_FPS = prefs.getInt("STATUS_BAR_REFRESH_FPS",DEF_STATUS_BAR_REFRESH_FPS); //$NON-NLS-1$
 			STATISTICS_REFRESH_FPS = prefs.getInt("STATISTICS_REFRESH_FPS",DEF_STATISTICS_REFRESH_FPS); //$NON-NLS-1$
 			THREAD_COUNT = prefs.getInt("THREAD_COUNT",DEF_THREAD_COUNT); //$NON-NLS-1$
+			AUTO_SAVE = prefs.getBoolean("AUTO_SAVE",DEF_AUTO_SAVE); //$NON-NLS-1$
 			AUTO_BACKUP = prefs.getBoolean("AUTO_BACKUP",DEF_AUTO_BACKUP);
 			COMPRESS_BACKUPS = prefs.getBoolean("COMPRESS_BACKUPS",DEF_COMPRESS_BACKUPS);
 			AUTO_BACKUP_CSV = prefs.getBoolean("AUTO_BACKUP_CSV",DEF_AUTO_BACKUP_CSV);
@@ -2307,6 +2326,7 @@ public final class Utils {
 			AUTO_BACKUP_CLADES_PNG = prefs.getBoolean("AUTO_BACKUP_CLADES_PNG",DEF_AUTO_BACKUP_CLADES_PNG);
 			AUTO_BACKUP_IMAGES_AS_FOLDERS = prefs.getBoolean("AUTO_BACKUP_IMAGES_AS_FOLDERS",DEF_AUTO_BACKUP_IMAGES_AS_FOLDERS);
 			BACKUP_DELAY = prefs.getInt("BACKUP_DELAY",DEF_BACKUP_DELAY);
+			SAVE_DELAY = prefs.getInt("SAVE_DELAY",DEF_SAVE_DELAY);
 			LOCAL_PORT = prefs.getInt("LOCAL_PORT",DEF_LOCAL_PORT); //$NON-NLS-1$
 			USER_NAME = prefs.get("USER_NAME",DEF_USER_NAME);
 			MAX_CONNECTIONS = prefs.getInt("MAX_CONNECTIONS",DEF_MAX_CONNECTIONS); //$NON-NLS-1$

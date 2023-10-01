@@ -144,6 +144,10 @@ public class World implements Serializable{
 	 */
 	protected boolean _isbackuped;
 	/**
+	 * Did we autosave already?
+	 */
+	protected boolean _issaved;
+	/**
 	 * Reference to the object that keeps track of all world statistics.
 	 */
 	@Expose
@@ -733,6 +737,7 @@ public class World implements Serializable{
 			nFrames = 0;
 			worldStatistics.eventTime(_population, getDistinctCladeIDCount(1), getDistinctCladeIDCount(10), getDistinctCladeIDCount(100), _O2, _CO2, _CH4, _detritus, _organisms);
 			_isbackuped = false;
+			_issaved = false;
 		}
 	}
 

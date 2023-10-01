@@ -51,10 +51,13 @@ public class ParamDialog extends JDialog {
 	private JTextField widthText = null;
 	private JTextField heightText = null;
 	private JTextField delayText = null;
+	private JTextField saveDelayText = null;
+	private JLabel saveDelayLabel = null;
 	private JTextField threadCountText = null;
 	private JRadioButton repaintWorldStrategyRadio1 = null;
 	private JRadioButton repaintWorldStrategyRadio2 = null;
 	private JRadioButton repaintWorldStrategyRadio3 = null;
+	private JCheckBox autoSaveCheck = null;
 	private JCheckBox autoBackupsCheck = null;
 	private JCheckBox compressBackupsCheck = null;
 	private JCheckBox autoBackupsCSVCheck = null;
@@ -252,11 +255,13 @@ public class ParamDialog extends JDialog {
 		widthText.setText(String.valueOf(Utils.DEF_WORLD_WIDTH));
 		heightText.setText(String.valueOf(Utils.DEF_WORLD_HEIGHT));
 		delayText.setText(String.valueOf(Utils.DEF_DELAY));
+		saveDelayText.setText(String.valueOf(Utils.DEF_SAVE_DELAY));
 		threadCountText.setText(String.valueOf(Utils.DEF_THREAD_COUNT));
 		repaintWorldStrategyRadio1.setSelected(Utils.DEF_repaintWorldStrategy.equals(RepaintWorldStrategy.ALWAYS.toString()));
 		repaintWorldStrategyRadio2.setSelected(Utils.DEF_repaintWorldStrategy.equals(RepaintWorldStrategy.ONLY_WHEN_MAIN_WINDOW_IS_IN_FOCUS.toString()));
 		repaintWorldStrategyRadio3.setSelected(Utils.DEF_repaintWorldStrategy.equals(RepaintWorldStrategy.WHEN_ANY_APP_WINDOW_IS_IN_FOCUS.toString()));
 		autoBackupsCheck.setSelected(Utils.DEF_AUTO_BACKUP);
+		autoSaveCheck.setSelected(Utils.DEF_AUTO_SAVE);
 		compressBackupsCheck.setSelected(Utils.DEF_COMPRESS_BACKUPS);
 		autoBackupsCSVCheck.setSelected(Utils.DEF_AUTO_BACKUP_CSV);
 		autoBackupsWorldPngCheck.setSelected(Utils.DEF_AUTO_BACKUP_WORLD_PNG);
@@ -503,11 +508,21 @@ public class ParamDialog extends JDialog {
 		generalPanel.add(panel);
 		//Backups
 		panel = new JPanel();
-		panel.setLayout(new GridLayout(8,1));
+		panel.setLayout(new GridLayout(10,1));
 		autoBackupsCheck = new JCheckBox(Messages.getString("T_AUTOMATIC_BACKUPS"));
+		autoSaveCheck = new JCheckBox(Messages.getString("T_AUTOMATIC_SAVES"));
+		saveDelayLabel = new JLabel(Messages.getString("T_TIME_BETWEEN_SAVES"));
 		label = new JLabel(Messages.getString("T_TIME_BETWEEN_BACKUPS")); //$NON-NLS-1$
 		backupDelayText = new JTextField(Integer.toString(Utils.BACKUP_DELAY),10);
 		autoBackupsCheck.setSelected(Utils.AUTO_BACKUP);
+		autoSaveCheck.setSelected(Utils.AUTO_SAVE);
+		autoSaveCheck.addChangeListener(new ChangeListener() {
+			public void stateChanged(ChangeEvent e) {
+				saveDelayText.setEnabled(autoSaveCheck.isSelected());
+			}
+		});
+		saveDelayText = new JTextField(Integer.toString(Utils.SAVE_DELAY),10);
+		saveDelayText.setEnabled(Utils.AUTO_SAVE);
 		backupDelayText.setEnabled(Utils.AUTO_BACKUP);
 		autoBackupsCheck.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
@@ -515,6 +530,11 @@ public class ParamDialog extends JDialog {
 			}
 		});
 		panel.add(autoBackupsCheck);
+		JPanel saveDelayPanel = new JPanel();
+		panel.add(autoSaveCheck);
+		saveDelayPanel.add(saveDelayLabel);
+		saveDelayPanel.add(saveDelayText);
+		panel.add(saveDelayPanel);
 
 		compressBackupsCheck = new JCheckBox(Messages.getString("T_COMPRESS_BACKUPS"));
 		compressBackupsCheck.setSelected(Utils.COMPRESS_BACKUPS);
@@ -1313,6 +1333,15 @@ public class ParamDialog extends JDialog {
 			// Keep old value if there is a problem
 		}
 		Utils.AUTO_BACKUP = autoBackupsCheck.isSelected();
+		Utils.AUTO_SAVE = autoSaveCheck.isSelected();
+		try {
+			i = Integer.parseInt(saveDelayText.getText());
+			if (i > 0) {
+				Utils.SAVE_DELAY = i;
+			}
+		} catch (NumberFormatException ex) {
+			// Keep old value if there is a problem
+		}
 		Utils.COMPRESS_BACKUPS = compressBackupsCheck.isSelected();
 		Utils.AUTO_BACKUP_CSV = autoBackupsCSVCheck.isSelected();
 		Utils.AUTO_BACKUP_WORLD_PNG = autoBackupsWorldPngCheck.isSelected();

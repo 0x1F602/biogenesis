@@ -754,6 +754,7 @@ public class MainWindow extends JFrame implements MainWindowInterface {
 						_trackedOrganism = null;
 						_world.worldStatistics.saveGameLoaded(MainWindow.this);
 						_world._isbackuped = true;
+						_world._issaved = true;
 						setStatusMessage(Messages.getString("T_WORLD_LOADED_SUCCESSFULLY")); //$NON-NLS-1$
 					} catch (IOException ex) {
 						ex.printStackTrace();
@@ -1361,6 +1362,18 @@ public class MainWindow extends JFrame implements MainWindowInterface {
 							} else {
 								if (_gameFile == null) {
 									backupGameAction.actionPerformed(null);
+								}
+							}
+						}
+						if (Utils.AUTO_SAVE && _world.getTime() % Utils.SAVE_DELAY == 0 && _world.getFrame() == 1) {
+							if (_world.getTime() > 0) {
+								if ((_gameFile != null) && (!_world._issaved)) {
+									saveGameAction.actionPerformed(null);
+									_world._issaved = true;
+								}
+							} else {
+								if (_gameFile == null) {
+									saveGameAction.actionPerformed(null);
 								}
 							}
 						}
